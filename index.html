@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRep Governance Dashboard</title>
+    <style>
+        :root {
+            --primary: #0033AD; /* Cardano Blue */
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border: #e0e0e0;
+            --pending: #d9534f;
+            --voted: #5cb85c;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .input-section {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: monospace;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: #002277; }
+        button:disabled { background-color: #999; cursor: not-allowed; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .proposal-item {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #fafafa;
+        }
+
+        .proposal-item:last-child { margin-bottom: 0; }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge.pending { background-color: var(--pending); }
+        .badge.voted { background-color: var(--voted); }
+
+        .hash-text {
+            font-family: monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            color: var(--text-muted);
+        }
+
+        #status {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>DRep Organizer</h1>
+        <p>Track active proposals and your pending votes instantly.</p>
+    </header>
+
+    <div class="input-section">
+        <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (e.g., drep1...)">
+        <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="dashboard-grid">
+        <!-- Pending Column -->
+        <div class="card">
+            <h2>Needs Your Vote (Pending)</h2>
+            <div id="pendingList">
+                <p style="color: var(--text-muted);">Enter your DRep ID to see pending votes.</p>
+            </div>
+        </div>
+
+        <!-- Voted Column -->
+        <div class="card">
+            <h2>Already Voted On</h2>
+            <div id="votedList">
+                <p style="color: var(--text-muted);">Enter your DRep ID to see your history.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Configuration ---
+    const KOIOS_API = "https://api.koios.rest/api/v1";
+
+    // --- On Load ---
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedDRep = localStorage.getItem("savedDrepId");
+        if (savedDRep) {
+            document.getElementById("drepIdInput").value = savedDRep;
+        }
+    });
+
+    // --- Main Logic ---
+    async function runDashboard() {
+        const drepId = document.getElementById("drepIdInput").value.trim();
+        const statusEl = document.getElementById("status");
+        const btn = document.getElementById("fetchBtn");
+
+        if (!drepId) {
+            alert("Please enter a DRep ID.");
+            return;
+        }
+
+        // Save to local storage for convenience
+        localStorage.setItem("savedDrepId", drepId);
+
+        btn.disabled = true;
+        statusEl.innerText = "Fetching data from Koios API...";
+        document.getElementById("pendingList").innerHTML = "";
+        document.getElementById("votedList").innerHTML = "";
+
+        try {
+            // 1. Fetch all proposals & DRep specific votes concurrently
+            const [proposalsRes, votesRes] = await Promise.all([
+                fetch(`${KOIOS_API}/proposal_list`), 
+                fetch(`${KOIOS_API}/drep_votes?_drep_id=${drepId}`) 
+            ]);
+
+            if (!proposalsRes.ok) throw new Error("Failed to fetch proposals");
+            if (!votesRes.ok) throw new Error("Failed to fetch DRep votes");
+
+            const allProposals = await proposalsRes.json();
+            const drepVotes = await votesRes.json();
+
+            // 2. Filter for Active Proposals (You may need to adjust the exact status string based on network epoch)
+            // Note: Koios returns 'expired', 'ratified', etc. We want things that are still active/deliberating.
+            const activeProposals = allProposals.filter(p => !p.expired && !p.ratified && !p.enacted && !p.dropped);
+
+            // 3. Create a Set of unique IDs the DRep HAS voted on for quick lookup
+            // Unique key format: txHash#index
+            const votedSet = new Set(drepVotes.map(v => `${v.proposal_tx_hash}#${v.proposal_index}`));
+
+            // 4. Calculate Pending vs Voted
+            const pending = [];
+            const voted = [];
+
+            activeProposals.forEach(proposal => {
+                const uniqueId = `${proposal.proposal_tx_hash}#${proposal.proposal_index}`;
+                
+                if (votedSet.has(uniqueId)) {
+                    voted.push(proposal);
+                } else {
+                    pending.push(proposal);
+                }
+            });
+
+            // 5. Render to UI
+            renderList("pendingList", pending, "pending");
+            renderList("votedList", voted, "voted");
+
+            statusEl.innerText = `Found ${pending.length} pending actions and ${voted.length} active voted actions.`;
+
+        } catch (error) {
+            console.error(error);
+            statusEl.innerText = "Error fetching data. Check console for details or verify your DRep ID.";
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // --- UI Rendering ---
+    function renderList(elementId, items, type) {
+        const container = document.getElementById(elementId);
+        container.innerHTML = ""; // Clear existing
+
+        if (items.length === 0) {
+            container.innerHTML = `<p style="color: var(--text-muted);">No items found in this category.</p>`;
+            return;
+        }
+
+        items.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "proposal-item";
+            
+            const badgeClass = type === "pending" ? "pending" : "voted";
+            const badgeText = type === "pending" ? "Needs Vote" : "Voted";
+
+            // Koios specific field names
+            const txHash = item.proposal_tx_hash;
+            const index = item.proposal_index;
+            // Map the action type from on-chain integer (CIP-1694 spec) if available, otherwise fallback
+            const typeLabel = item.action_type || "Governance Action"; 
+
+            div.innerHTML = `
+                <span class="badge ${badgeClass}">${badgeText}</span>
+                <h3 style="margin: 0.5rem 0;">${typeLabel}</h3>
+                <p style="margin: 0;"><strong>Index:</strong> ${index}</p>
+                <p class="hash-text"><strong>Tx:</strong> <br>${txHash}</p>
+            `;
+            container.appendChild(div);
+        });
+    }
+</script>
+
+</body>
+</html>
