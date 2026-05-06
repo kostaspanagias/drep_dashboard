@@ -12,8 +12,9 @@
             --text-main: #333333;
             --text-muted: #666666;
             --border: #e0e0e0;
-            --pending: #d9534f;
-            --voted: #5cb85c;
+            --pending: #d9534f; /* Red */
+            --voted: #5cb85c;   /* Green */
+            --missed: #f0ad4e;  /* Orange */
             --link: #0055ff;
         }
 
@@ -26,15 +27,8 @@
             line-height: 1.6;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+        .container { max-width: 850px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 2rem; }
 
         .card {
             background: var(--card-bg);
@@ -44,70 +38,36 @@
             margin-bottom: 1.5rem;
         }
 
-        /* Input Styles */
-        .input-group {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .input-group { flex-direction: column; }
-        }
+        .input-group { display: flex; gap: 1rem; margin-top: 1rem; }
+        @media (max-width: 768px) { .input-group { flex-direction: column; } }
 
         input {
-            flex: 1;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 1rem;
-            font-family: monospace;
+            flex: 1; padding: 0.75rem; border: 1px solid var(--border);
+            border-radius: 4px; font-size: 1rem; font-family: monospace;
         }
 
         button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            white-space: nowrap;
+            background-color: var(--primary); color: white; border: none;
+            padding: 0.75rem 1.5rem; border-radius: 4px; font-size: 1rem;
+            cursor: pointer; transition: background-color 0.2s; white-space: nowrap;
         }
-
         button:hover { background-color: #002277; }
         button:disabled { background-color: #999; cursor: not-allowed; }
 
         /* Tabs UI */
         .tabs {
-            display: flex;
-            border-bottom: 2px solid var(--border);
-            margin-bottom: 1.5rem;
+            display: flex; border-bottom: 2px solid var(--border);
+            margin-bottom: 1.5rem; flex-wrap: wrap;
         }
 
         .tab {
-            flex: 1;
-            text-align: center;
-            padding: 1rem;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--text-muted);
-            background: transparent;
-            border: none;
-            outline: none;
-            transition: color 0.2s;
+            flex: 1; text-align: center; padding: 1rem 0.5rem; cursor: pointer;
+            font-size: 1rem; font-weight: bold; color: var(--text-muted);
+            background: transparent; border: none; outline: none; transition: color 0.2s;
         }
-
-        .tab:hover {
-            color: var(--text-main);
-        }
-
+        .tab:hover { color: var(--text-main); }
         .tab.active {
-            color: var(--primary);
-            border-bottom: 3px solid var(--primary);
-            margin-bottom: -2px; /* overlap border */
+            color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -2px;
         }
 
         .view { display: none; }
@@ -115,93 +75,51 @@
 
         /* Proposal Item Styles */
         .proposal-item {
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 1.25rem;
-            margin-bottom: 1.25rem;
-            background: #fafafa;
+            border: 1px solid var(--border); border-radius: 6px;
+            padding: 1.25rem; margin-bottom: 1.25rem; background: #fafafa;
         }
-
         .proposal-item:last-child { margin-bottom: 0; }
 
-        .proposal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .proposal-item h3 {
-            margin: 0.75rem 0;
-            font-size: 1.15rem;
-            line-height: 1.4;
-        }
+        .proposal-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .proposal-item h3 { margin: 0.75rem 0; font-size: 1.15rem; line-height: 1.4; }
 
         .badge {
-            display: inline-block;
-            padding: 0.35rem 0.65rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: inline-block; padding: 0.35rem 0.65rem; border-radius: 4px;
+            font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase;
         }
 
         /* Action Type Colors */
-        .bg-parameter { background-color: #8b5cf6; } /* Purple */
-        .bg-hardfork { background-color: #ef4444; } /* Red */
-        .bg-treasury { background-color: #10b981; } /* Green */
-        .bg-noconfidence { background-color: #f97316; } /* Orange */
-        .bg-committee { background-color: #3b82f6; } /* Blue */
-        .bg-constitution { background-color: #06b6d4; } /* Cyan */
-        .bg-info { background-color: #6b7280; } /* Gray */
-        .bg-default { background-color: #333333; } /* Dark */
+        .bg-parameter { background-color: #8b5cf6; }
+        .bg-hardfork { background-color: #ef4444; }
+        .bg-treasury { background-color: #10b981; }
+        .bg-noconfidence { background-color: #f97316; }
+        .bg-committee { background-color: #3b82f6; }
+        .bg-constitution { background-color: #06b6d4; }
+        .bg-info { background-color: #6b7280; }
+        .bg-default { background-color: #333333; }
 
         .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            background: #ffffff;
-            padding: 1rem;
-            border-radius: 4px;
-            border: 1px solid #eee;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+            background: #ffffff; padding: 1rem; border-radius: 4px;
+            border: 1px solid #eee; margin-bottom: 1rem; font-size: 0.9rem;
         }
 
         .hash-text {
-            font-family: monospace;
-            font-size: 0.85rem;
-            word-break: break-all;
-            color: var(--text-muted);
-            background: #eee;
-            padding: 0.5rem;
-            border-radius: 4px;
+            font-family: monospace; font-size: 0.85rem; word-break: break-all;
+            color: var(--text-muted); background: #eee; padding: 0.5rem; border-radius: 4px;
         }
 
         .action-link {
-            display: inline-block;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: var(--link);
-            text-decoration: none;
-            font-weight: bold;
+            display: inline-block; margin-top: 1rem; font-size: 0.9rem;
+            color: var(--link); text-decoration: none; font-weight: bold;
         }
-
         .action-link:hover { text-decoration: underline; }
 
-        #status {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .disclaimer {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
-        }
+        #status { text-align: center; font-weight: bold; margin-bottom: 1rem; color: var(--primary); }
+        .disclaimer { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; }
+        
+        /* Empty State */
+        .empty-state { text-align: center; color: var(--text-muted); padding: 2rem; }
     </style>
 </head>
 <body>
@@ -218,38 +136,45 @@
             <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
             <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
         </div>
-        <p class="disclaimer">
-            *Requires a Free Tier API Token from Koios. Your token is stored locally in your browser.
-        </p>
+        <p class="disclaimer">*Requires a Free Tier API Token from Koios. Stored locally in your browser.</p>
     </div>
 
     <div id="status"></div>
 
     <!-- Toggle Tabs -->
     <div class="tabs">
-        <button id="tab-pending" class="tab active" onclick="switchTab('pending')">Needs Your Vote (Pending)</button>
-        <button id="tab-voted" class="tab" onclick="switchTab('voted')">Already Voted On</button>
+        <button id="tab-pending" class="tab active" onclick="switchTab('pending')">Needs Vote (0)</button>
+        <button id="tab-voted" class="tab" onclick="switchTab('voted')">Voted (0)</button>
+        <button id="tab-missed" class="tab" onclick="switchTab('missed')">Expired without Vote (0)</button>
     </div>
 
     <!-- Tab Content: Pending -->
     <div id="view-pending" class="view active card">
-        <div id="pendingList">
-            <p style="color: var(--text-muted); text-align: center;">Enter your info above and click fetch.</p>
-        </div>
+        <div id="pendingList"><div class="empty-state">Enter info above and fetch.</div></div>
     </div>
 
     <!-- Tab Content: Voted -->
     <div id="view-voted" class="view card">
-        <div id="votedList">
-            <p style="color: var(--text-muted); text-align: center;">Enter your info above and click fetch.</p>
-        </div>
+        <div id="votedList"><div class="empty-state">Enter info above and fetch.</div></div>
+    </div>
+
+    <!-- Tab Content: Missed -->
+    <div id="view-missed" class="view card">
+        <div id="missedList"><div class="empty-state">Enter info above and fetch.</div></div>
     </div>
 </div>
 
 <script>
     const KOIOS_API = "https://api.koios.rest/api/v1";
 
-    // Action Types mapped to UI Labels and Colors
+    // Fallback array of public IPFS gateways to guarantee metadata loading
+    const IPFS_GATEWAYS = [
+        "https://ipfs.io/ipfs/",
+        "https://dweb.link/ipfs/",
+        "https://cloudflare-ipfs.com/ipfs/",
+        "https://gateway.pinata.cloud/ipfs/"
+    ];
+
     const typeMapping = {
         'parameter_change': { label: 'Parameter Change', class: 'bg-parameter' },
         'hard_fork_initiation': { label: 'Hard-Fork', class: 'bg-hardfork' },
@@ -260,22 +185,18 @@
         'info_action': { label: 'Info Action', class: 'bg-info' }
     };
 
-    // Tab Logic
     function switchTab(tabId) {
-        document.getElementById('tab-pending').classList.remove('active');
-        document.getElementById('tab-voted').classList.remove('active');
-        document.getElementById('view-pending').classList.remove('active');
-        document.getElementById('view-voted').classList.remove('active');
-
+        ['pending', 'voted', 'missed'].forEach(id => {
+            document.getElementById(`tab-${id}`).classList.remove('active');
+            document.getElementById(`view-${id}`).classList.remove('active');
+        });
         document.getElementById(`tab-${tabId}`).classList.add('active');
         document.getElementById(`view-${tabId}`).classList.add('active');
     }
 
-    // Load saved settings
     document.addEventListener("DOMContentLoaded", () => {
         const savedDRep = localStorage.getItem("savedDrepId");
         const savedToken = localStorage.getItem("savedKoiosToken");
-        
         if (savedDRep) document.getElementById("drepIdInput").value = savedDRep;
         if (savedToken) document.getElementById("apiTokenInput").value = savedToken;
     });
@@ -286,26 +207,17 @@
         const statusEl = document.getElementById("status");
         const btn = document.getElementById("fetchBtn");
 
-        if (!apiToken || !drepId) {
-            alert("Please enter both your Koios API Token and DRep ID.");
-            return;
-        }
+        if (!apiToken || !drepId) { alert("Please enter both Token and DRep ID."); return; }
 
         localStorage.setItem("savedDrepId", drepId);
         localStorage.setItem("savedKoiosToken", apiToken);
 
         btn.disabled = true;
         statusEl.innerText = "Fetching chain data and resolving dates...";
-        document.getElementById("pendingList").innerHTML = "";
-        document.getElementById("votedList").innerHTML = "";
-
-        const headers = {
-            "Authorization": `Bearer ${apiToken}`,
-            "Accept": "application/json"
-        };
+        
+        const headers = { "Authorization": `Bearer ${apiToken}`, "Accept": "application/json" };
 
         try {
-            // Fetch everything we need in parallel
             const [proposalsRes, votesRes, tipRes, paramsRes] = await Promise.all([
                 fetch(`${KOIOS_API}/proposal_list`, { headers }), 
                 fetch(`${KOIOS_API}/drep_votes?_drep_id=${drepId}`, { headers }),
@@ -320,36 +232,40 @@
             const tipData = await tipRes.json();
             const paramsData = await paramsRes.json();
 
-            // Setup Date Calculation variables
             const currentEpoch = tipData[0].epoch_no;
             const currentUnix = tipData[0].block_time;
-            const govLifetime = paramsData[0].gov_action_lifetime; // Usually 6 epochs
+            const govLifetime = paramsData[0].gov_action_lifetime;
 
-            // Filter for only active proposals
-            const activeProposals = allProposals.filter(p => !p.expired && !p.ratified && !p.enacted && !p.dropped);
             const votedSet = new Set(drepVotes.map(v => `${v.proposal_tx_hash}#${v.proposal_index}`));
 
             const pending = [];
             const voted = [];
+            const missed = [];
 
-            activeProposals.forEach(proposal => {
+            // Updated Bucket Logic
+            allProposals.forEach(proposal => {
                 const uniqueId = `${proposal.proposal_tx_hash}#${proposal.proposal_index}`;
-                if (votedSet.has(uniqueId)) {
+                const isVoted = votedSet.has(uniqueId);
+                const isEnded = proposal.expired || proposal.ratified || proposal.enacted || proposal.dropped;
+
+                if (isVoted) {
                     voted.push(proposal);
+                } else if (isEnded) {
+                    missed.push(proposal);
                 } else {
                     pending.push(proposal);
                 }
             });
 
-            // Update Tab counts
-            document.getElementById("tab-pending").innerText = `Needs Your Vote (${pending.length})`;
-            document.getElementById("tab-voted").innerText = `Already Voted On (${voted.length})`;
+            document.getElementById("tab-pending").innerText = `Needs Vote (${pending.length})`;
+            document.getElementById("tab-voted").innerText = `Voted (${voted.length})`;
+            document.getElementById("tab-missed").innerText = `Expired without Vote (${missed.length})`;
 
-            // Render both lists
             renderList("pendingList", pending, currentEpoch, currentUnix, govLifetime);
             renderList("votedList", voted, currentEpoch, currentUnix, govLifetime);
+            renderList("missedList", missed, currentEpoch, currentUnix, govLifetime);
 
-            statusEl.innerText = `Data Synced! Found ${pending.length} pending and ${voted.length} completed actions.`;
+            statusEl.innerText = `Data Synced!`;
 
         } catch (error) {
             console.error(error);
@@ -364,7 +280,7 @@
         container.innerHTML = ""; 
 
         if (items.length === 0) {
-            container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No items to display here.</p>`;
+            container.innerHTML = `<div class="empty-state">No items in this category.</div>`;
             return;
         }
 
@@ -380,23 +296,17 @@
             const titleId = `title-${txHash}-${index}`;
             const govToolLink = `https://gov.tools/governance_actions/${txHash}#${index}`;
 
-            // --- DATE LOGIC ---
-            // 1. Calculate Submitted Date
             let submittedStr = "Unknown";
-            const blockTime = item.block_time; // Unix Epoch in seconds
-            if (blockTime) {
-                const d = new Date(blockTime * 1000);
+            if (item.block_time) {
+                const d = new Date(item.block_time * 1000);
                 submittedStr = `${d.toLocaleDateString()} at ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
             }
 
-            // 2. Calculate Expiration Deadlines
             let expireText = "Calculating...";
             let proposalEpoch = item.epoch_no || item.active_epoch; 
 
-            // If API didn't provide the exact epoch, estimate it via unix timestamp diff
-            if (!proposalEpoch && blockTime) {
-                const secondsDiff = currentUnix - blockTime;
-                const epochsDiff = Math.floor(secondsDiff / 432000); // 432000 seconds = 1 Epoch
+            if (!proposalEpoch && item.block_time) {
+                const epochsDiff = Math.floor((currentUnix - item.block_time) / 432000); 
                 proposalEpoch = currentEpoch - epochsDiff;
             }
 
@@ -404,15 +314,19 @@
                 const expireEpoch = proposalEpoch + govLifetime;
                 const epochsLeft = expireEpoch - currentEpoch;
                 
-                if (epochsLeft < 0) {
-                    expireText = `<span style="color: var(--pending); font-weight: bold;">Expired in Epoch ${expireEpoch}</span>`;
+                if (epochsLeft < 0 || item.expired || item.ratified || item.enacted || item.dropped) {
+                    let statusLabel = "Ended";
+                    if (item.expired) statusLabel = "Expired";
+                    if (item.ratified) statusLabel = "Ratified";
+                    if (item.enacted) statusLabel = "Enacted";
+                    if (item.dropped) statusLabel = "Dropped";
+                    expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} in Epoch ${expireEpoch}</span>`;
                 } else {
-                    const estDaysLeft = epochsLeft * 5; // 5 days per epoch
+                    const estDaysLeft = epochsLeft * 5; 
                     expireText = `<span style="color: var(--voted); font-weight: bold;">Epoch ${expireEpoch}</span> (~${estDaysLeft} days left)`;
                 }
             }
 
-            // Construct Card HTML
             div.innerHTML = `
                 <div class="proposal-header">
                     <span class="badge ${mapped.class}">${mapped.label}</span>
@@ -427,60 +341,66 @@
                         <strong>${submittedStr}</strong>
                     </div>
                     <div>
-                        <span style="color: var(--text-muted); font-size: 0.8rem;">Deadline / Expiration</span><br>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Deadline / Status</span><br>
                         ${expireText}
                     </div>
                 </div>
 
                 <div class="hash-text"><strong>Tx:</strong> ${txHash}</div>
-                <a href="${govToolLink}" target="_blank" class="action-link">↗ View Proposal on GovTool</a>
+                <a href="${govToolLink}" target="_blank" class="action-link">↗ View on GovTool</a>
             `;
             container.appendChild(div);
 
-            // Trigger Background Metadata Fetching
             const metaUrl = item.meta_url || item.proposal_meta_url || null;
             resolveMetadataTitle(metaUrl, titleId, fallbackTitle);
         });
     }
 
-    // Background function to resolve Off-Chain Metadata titles without freezing the UI
+    // IPFS Gateway Fallback Logic
+    async function fetchFromIpfs(ipfsHash) {
+        for (const gateway of IPFS_GATEWAYS) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5s timeout per gateway
+                const res = await fetch(`${gateway}${ipfsHash}`, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (res.ok) return await res.json();
+            } catch (e) {
+                // Gateway failed, loop moves to the next one automatically
+            }
+        }
+        throw new Error("All public IPFS gateways failed.");
+    }
+
     async function resolveMetadataTitle(url, elementId, fallbackTitle) {
         const titleEl = document.getElementById(elementId);
         
-        if (!url) {
-            titleEl.innerText = fallbackTitle;
-            return;
-        }
-
-        // Convert ipfs:// protocols to a reliable HTTP gateway
-        let fetchUrl = url;
-        if (url.startsWith('ipfs://')) {
-            fetchUrl = url.replace('ipfs://', 'https://cf-ipfs.com/ipfs/');
-        }
+        if (!url) { titleEl.innerText = fallbackTitle; return; }
 
         try {
-            // Give it 4 seconds to load from IPFS, otherwise fallback so UI doesn't look stuck
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000); 
-            
-            const res = await fetch(fetchUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
+            let data;
+            // Handle HTTP vs IPFS
+            if (url.startsWith('http')) {
+                const res = await fetch(url);
+                if (res.ok) data = await res.json();
+            } else {
+                let ipfsHash = url.replace('ipfs://', '');
+                if (ipfsHash.includes('/ipfs/')) ipfsHash = ipfsHash.split('/ipfs/')[1];
+                data = await fetchFromIpfs(ipfsHash);
+            }
 
-            if (res.ok) {
-                const data = await res.json();
-                // CIP-108 JSON usually puts the title inside body.title
-                const foundTitle = data?.body?.title || data?.title; 
-                
-                if (foundTitle) {
-                    titleEl.innerText = foundTitle;
-                    return; // Success!
-                }
+            // CIP-108 JSON formatting standard check
+            const foundTitle = data?.body?.title || data?.title || data?.givenName; 
+            if (foundTitle) {
+                titleEl.innerText = foundTitle;
+                return;
             }
         } catch (e) {
-            console.warn("Could not load off-chain metadata for:", fetchUrl);
+            console.warn(`Could not load metadata for ${url}`);
         }
 
-        // If fetch fails, falls back to Action Type + Index
+        // Failsafe
         titleEl.innerText = fallbackTitle; 
     }
 </script>
