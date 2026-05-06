@@ -192,12 +192,6 @@
 
 <script>
     const KOIOS_API = "https://api.koios.rest/api/v1";
-    const IPFS_GATEWAYS = [
-        "https://ipfs.io/ipfs/",
-        "https://dweb.link/ipfs/",
-        "https://cloudflare-ipfs.com/ipfs/",
-        "https://gateway.pinata.cloud/ipfs/"
-    ];
 
     const typeMapping = {
         'parameterchange': { label: 'Parameter Change', class: 'bg-parameter' },
@@ -217,6 +211,16 @@
     function normalizeString(str) {
         if (!str) return "";
         return str.replace(/[_-\s]/g, '').toLowerCase();
+    }
+
+    // Extracts the pure CID from any IPFS link format
+    function extractIpfsCid(url) {
+        if (!url) return null;
+        let cid = url.replace('ipfs://', '').replace('https://ipfs.io/ipfs/', '');
+        if (cid.includes('/ipfs/')) {
+            cid = cid.split('/ipfs/')[1];
+        }
+        return cid;
     }
 
     function switchTab(tabId) {
@@ -385,14 +389,16 @@
             const titleId = `title-${txHash}-${index}`;
             const govToolLink = `https://gov.tools/governance_actions/${txHash}#${index}`;
 
-            // Anchor URL processing
+            // Strict IPFS URL construction to exactly match user request: "https://ipfs.io/" + ipfs id
             const metaUrl = item.meta_url || item.proposal_meta_url || null;
             let rawLinkHtml = "";
             if (metaUrl) {
-                // Convert IPFS link to standard HTTP Gateway link so users can click and view it
                 let clickableUrl = metaUrl;
-                if (metaUrl.startsWith('ipfs://')) {
-                    clickableUrl = metaUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                if (metaUrl.includes('ipfs')) {
+                    const cid = extractIpfsCid(metaUrl);
+                    if (cid) {
+                        clickableUrl = `https://ipfs.io/ipfs/${cid}`;
+                    }
                 }
                 rawLinkHtml = `<a href="${clickableUrl}" target="_blank" class="action-link secondary">📄 View Raw Anchor</a>`;
             }
@@ -450,39 +456,36 @@
         });
     }
 
-    async function fetchFromIpfs(ipfsHash) {
-        for (const gateway of IPFS_GATEWAYS) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2500);
-                const res = await fetch(`${gateway}${ipfsHash}`, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                
-                if (res.ok) return await res.json();
-            } catch (e) {}
-        }
-        throw new Error("All public IPFS gateways failed.");
-    }
-
     async function resolveMetadataTitle(url, elementId, fallbackTitle) {
         const titleEl = document.getElementById(elementId);
         if (!url) { titleEl.innerText = fallbackTitle; return; }
 
         try {
             let data;
-            if (url.startsWith('http')) {
+            if (url.startsWith('http') && !url.includes('ipfs')) {
                 const res = await fetch(url);
                 if (res.ok) data = await res.json();
             } else {
-                let ipfsHash = url.replace('ipfs://', '');
-                if (ipfsHash.includes('/ipfs/')) ipfsHash = ipfsHash.split('/ipfs/')[1];
-                data = await fetchFromIpfs(ipfsHash);
+                // Strictly fetch using https://ipfs.io/ipfs/ as requested
+                const cid = extractIpfsCid(url);
+                if (cid) {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 4000);
+                    const res = await fetch(`https://ipfs.io/ipfs/${cid}`, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    
+                    if (res.ok) {
+                        data = await res.json();
+                    }
+                }
             }
 
-            const foundTitle = data?.body?.title || data?.title || data?.givenName; 
-            if (foundTitle) {
-                titleEl.innerText = foundTitle;
-                return;
+            if (data) {
+                const foundTitle = data?.body?.title || data?.title || data?.givenName; 
+                if (foundTitle) {
+                    titleEl.innerText = foundTitle;
+                    return;
+                }
             }
         } catch (e) {
             console.warn(`Could not load metadata for ${url}`);
