@@ -14,6 +14,7 @@
             --border: #e0e0e0;
             --pending: #d9534f;
             --voted: #5cb85c;
+            --link: #0055ff;
         }
 
         body {
@@ -103,6 +104,7 @@
             padding: 1rem;
             margin-bottom: 1rem;
             background: #fafafa;
+            position: relative;
         }
 
         .proposal-item:last-child { margin-bottom: 0; }
@@ -125,7 +127,22 @@
             font-size: 0.85rem;
             word-break: break-all;
             color: var(--text-muted);
+            background: #eee;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
         }
+
+        .action-link {
+            display: inline-block;
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--link);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .action-link:hover { text-decoration: underline; }
 
         #status {
             text-align: center;
@@ -157,7 +174,7 @@
             <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
         </div>
         <p class="disclaimer">
-            *Koios restricts browser requests (CORS) on their anonymous tier. To use this, you need a <a href="https://koios.rest/pricing/Pricing.html" target="_blank">Free Tier API Token from Koios</a>. Your token is securely stored in your browser's local storage and is never uploaded to GitHub.
+            *Requires a Free Tier API Token from Koios to bypass CORS restrictions. Stored locally.
         </p>
     </div>
 
@@ -183,6 +200,17 @@
 <script>
     const KOIOS_API = "https://api.koios.rest/api/v1";
 
+    // Map backend snake_case strings to readable formats
+    const typeMapping = {
+        'parameter_change': 'Protocol Parameter Change',
+        'hard_fork_initiation': 'Hard-Fork Initiation',
+        'treasury_withdrawals': 'Treasury Withdrawal',
+        'no_confidence': 'Motion of No-Confidence',
+        'update_committee': 'Update Constitutional Committee',
+        'new_constitution': 'New Constitution',
+        'info_action': 'Info Action'
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         const savedDRep = localStorage.getItem("savedDrepId");
         const savedToken = localStorage.getItem("savedKoiosToken");
@@ -197,17 +225,11 @@
         const statusEl = document.getElementById("status");
         const btn = document.getElementById("fetchBtn");
 
-        if (!apiToken) {
-            alert("Please enter your Koios Free Tier API Token. This is required to bypass CORS restrictions.");
+        if (!apiToken || !drepId) {
+            alert("Please enter both your Koios API Token and DRep ID.");
             return;
         }
 
-        if (!drepId) {
-            alert("Please enter a DRep ID.");
-            return;
-        }
-
-        // Save to local storage for convenience (never leaves your browser)
         localStorage.setItem("savedDrepId", drepId);
         localStorage.setItem("savedKoiosToken", apiToken);
 
@@ -216,7 +238,6 @@
         document.getElementById("pendingList").innerHTML = "";
         document.getElementById("votedList").innerHTML = "";
 
-        // Injecting the token into the Authorization header bypasses the CORS block
         const headers = {
             "Authorization": `Bearer ${apiToken}`,
             "Accept": "application/json"
@@ -280,13 +301,20 @@
 
             const txHash = item.proposal_tx_hash;
             const index = item.proposal_index;
-            const typeLabel = item.action_type || "Governance Action"; 
+            
+            // Map the correct property 'proposal_type'
+            const rawType = item.proposal_type;
+            const typeLabel = typeMapping[rawType] || rawType || "Governance Action"; 
+            
+            // Generate official GovTool Link
+            const govToolLink = `https://gov.tools/governance_actions/${txHash}`;
 
             div.innerHTML = `
                 <span class="badge ${badgeClass}">${badgeText}</span>
                 <h3 style="margin: 0.5rem 0;">${typeLabel}</h3>
                 <p style="margin: 0;"><strong>Index:</strong> ${index}</p>
-                <p class="hash-text"><strong>Tx:</strong> <br>${txHash}</p>
+                <div class="hash-text"><strong>Tx Hash:</strong><br>${txHash}</div>
+                <a href="${govToolLink}" target="_blank" class="action-link">↗ View Proposal Details on GovTool</a>
             `;
             container.appendChild(div);
         });
