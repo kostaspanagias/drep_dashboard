@@ -27,7 +27,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
@@ -41,12 +41,10 @@
             padding: 1.5rem;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
         }
 
-        .settings-panel {
-            margin-bottom: 2rem;
-        }
-
+        /* Input Styles */
         .input-group {
             display: flex;
             gap: 1rem;
@@ -81,46 +79,95 @@
         button:hover { background-color: #002277; }
         button:disabled { background-color: #999; cursor: not-allowed; }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-        }
-
-        .card h2 {
-            margin-top: 0;
+        /* Tabs UI */
+        .tabs {
+            display: flex;
             border-bottom: 2px solid var(--border);
-            padding-bottom: 0.5rem;
-            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
         }
 
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            outline: none;
+            transition: color 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text-main);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: -2px; /* overlap border */
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* Proposal Item Styles */
         .proposal-item {
             border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            border-radius: 6px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
             background: #fafafa;
-            position: relative;
         }
 
         .proposal-item:last-child { margin-bottom: 0; }
 
+        .proposal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .proposal-item h3 {
+            margin: 0.75rem 0;
+            font-size: 1.15rem;
+            line-height: 1.4;
+        }
+
         .badge {
             display: inline-block;
-            padding: 0.25rem 0.5rem;
+            padding: 0.35rem 0.65rem;
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: bold;
             color: white;
-            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .badge.pending { background-color: var(--pending); }
-        .badge.voted { background-color: var(--voted); }
+        /* Action Type Colors */
+        .bg-parameter { background-color: #8b5cf6; } /* Purple */
+        .bg-hardfork { background-color: #ef4444; } /* Red */
+        .bg-treasury { background-color: #10b981; } /* Green */
+        .bg-noconfidence { background-color: #f97316; } /* Orange */
+        .bg-committee { background-color: #3b82f6; } /* Blue */
+        .bg-constitution { background-color: #06b6d4; } /* Cyan */
+        .bg-info { background-color: #6b7280; } /* Gray */
+        .bg-default { background-color: #333333; } /* Dark */
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            background: #ffffff;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
 
         .hash-text {
             font-family: monospace;
@@ -130,16 +177,15 @@
             background: #eee;
             padding: 0.5rem;
             border-radius: 4px;
-            margin-top: 0.5rem;
         }
 
         .action-link {
             display: inline-block;
-            margin-top: 0.75rem;
+            margin-top: 1rem;
             font-size: 0.9rem;
             color: var(--link);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: bold;
         }
 
         .action-link:hover { text-decoration: underline; }
@@ -163,36 +209,39 @@
 <div class="container">
     <header>
         <h1>DRep Organizer</h1>
-        <p>Track active proposals and your pending votes instantly.</p>
+        <p>Track active proposals, dates, and pending votes.</p>
     </header>
 
-    <div class="card settings-panel">
-        <h2>Settings & Connection</h2>
+    <div class="card">
         <div class="input-group">
             <input type="password" id="apiTokenInput" placeholder="Koios API Token">
             <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
             <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
         </div>
         <p class="disclaimer">
-            *Requires a Free Tier API Token from Koios to bypass CORS restrictions. Stored locally.
+            *Requires a Free Tier API Token from Koios. Your token is stored locally in your browser.
         </p>
     </div>
 
     <div id="status"></div>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <h2>Needs Your Vote (Pending)</h2>
-            <div id="pendingList">
-                <p style="color: var(--text-muted);">Enter your info above and click fetch.</p>
-            </div>
-        </div>
+    <!-- Toggle Tabs -->
+    <div class="tabs">
+        <button id="tab-pending" class="tab active" onclick="switchTab('pending')">Needs Your Vote (Pending)</button>
+        <button id="tab-voted" class="tab" onclick="switchTab('voted')">Already Voted On</button>
+    </div>
 
-        <div class="card">
-            <h2>Already Voted On</h2>
-            <div id="votedList">
-                <p style="color: var(--text-muted);">Enter your info above and click fetch.</p>
-            </div>
+    <!-- Tab Content: Pending -->
+    <div id="view-pending" class="view active card">
+        <div id="pendingList">
+            <p style="color: var(--text-muted); text-align: center;">Enter your info above and click fetch.</p>
+        </div>
+    </div>
+
+    <!-- Tab Content: Voted -->
+    <div id="view-voted" class="view card">
+        <div id="votedList">
+            <p style="color: var(--text-muted); text-align: center;">Enter your info above and click fetch.</p>
         </div>
     </div>
 </div>
@@ -200,17 +249,29 @@
 <script>
     const KOIOS_API = "https://api.koios.rest/api/v1";
 
-    // Map backend snake_case strings to readable formats
+    // Action Types mapped to UI Labels and Colors
     const typeMapping = {
-        'parameter_change': 'Protocol Parameter Change',
-        'hard_fork_initiation': 'Hard-Fork Initiation',
-        'treasury_withdrawals': 'Treasury Withdrawal',
-        'no_confidence': 'Motion of No-Confidence',
-        'update_committee': 'Update Constitutional Committee',
-        'new_constitution': 'New Constitution',
-        'info_action': 'Info Action'
+        'parameter_change': { label: 'Parameter Change', class: 'bg-parameter' },
+        'hard_fork_initiation': { label: 'Hard-Fork', class: 'bg-hardfork' },
+        'treasury_withdrawals': { label: 'Treasury', class: 'bg-treasury' },
+        'no_confidence': { label: 'No Confidence', class: 'bg-noconfidence' },
+        'update_committee': { label: 'Update Committee', class: 'bg-committee' },
+        'new_constitution': { label: 'New Constitution', class: 'bg-constitution' },
+        'info_action': { label: 'Info Action', class: 'bg-info' }
     };
 
+    // Tab Logic
+    function switchTab(tabId) {
+        document.getElementById('tab-pending').classList.remove('active');
+        document.getElementById('tab-voted').classList.remove('active');
+        document.getElementById('view-pending').classList.remove('active');
+        document.getElementById('view-voted').classList.remove('active');
+
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+        document.getElementById(`view-${tabId}`).classList.add('active');
+    }
+
+    // Load saved settings
     document.addEventListener("DOMContentLoaded", () => {
         const savedDRep = localStorage.getItem("savedDrepId");
         const savedToken = localStorage.getItem("savedKoiosToken");
@@ -234,7 +295,7 @@
         localStorage.setItem("savedKoiosToken", apiToken);
 
         btn.disabled = true;
-        statusEl.innerText = "Fetching data from Koios API...";
+        statusEl.innerText = "Fetching chain data and resolving dates...";
         document.getElementById("pendingList").innerHTML = "";
         document.getElementById("votedList").innerHTML = "";
 
@@ -244,17 +305,27 @@
         };
 
         try {
-            const [proposalsRes, votesRes] = await Promise.all([
+            // Fetch everything we need in parallel
+            const [proposalsRes, votesRes, tipRes, paramsRes] = await Promise.all([
                 fetch(`${KOIOS_API}/proposal_list`, { headers }), 
-                fetch(`${KOIOS_API}/drep_votes?_drep_id=${drepId}`, { headers }) 
+                fetch(`${KOIOS_API}/drep_votes?_drep_id=${drepId}`, { headers }),
+                fetch(`${KOIOS_API}/tip`, { headers }),
+                fetch(`${KOIOS_API}/epoch_params`, { headers })
             ]);
 
-            if (!proposalsRes.ok) throw new Error(`Failed to fetch proposals: ${proposalsRes.statusText}`);
-            if (!votesRes.ok) throw new Error(`Failed to fetch DRep votes: ${votesRes.statusText}`);
+            if (!proposalsRes.ok) throw new Error("Failed to fetch proposals.");
 
             const allProposals = await proposalsRes.json();
             const drepVotes = await votesRes.json();
+            const tipData = await tipRes.json();
+            const paramsData = await paramsRes.json();
 
+            // Setup Date Calculation variables
+            const currentEpoch = tipData[0].epoch_no;
+            const currentUnix = tipData[0].block_time;
+            const govLifetime = paramsData[0].gov_action_lifetime; // Usually 6 epochs
+
+            // Filter for only active proposals
             const activeProposals = allProposals.filter(p => !p.expired && !p.ratified && !p.enacted && !p.dropped);
             const votedSet = new Set(drepVotes.map(v => `${v.proposal_tx_hash}#${v.proposal_index}`));
 
@@ -270,25 +341,30 @@
                 }
             });
 
-            renderList("pendingList", pending, "pending");
-            renderList("votedList", voted, "voted");
+            // Update Tab counts
+            document.getElementById("tab-pending").innerText = `Needs Your Vote (${pending.length})`;
+            document.getElementById("tab-voted").innerText = `Already Voted On (${voted.length})`;
 
-            statusEl.innerText = `Found ${pending.length} pending actions and ${voted.length} active voted actions.`;
+            // Render both lists
+            renderList("pendingList", pending, currentEpoch, currentUnix, govLifetime);
+            renderList("votedList", voted, currentEpoch, currentUnix, govLifetime);
+
+            statusEl.innerText = `Data Synced! Found ${pending.length} pending and ${voted.length} completed actions.`;
 
         } catch (error) {
             console.error(error);
-            statusEl.innerText = "Error fetching data. Ensure your API Token is valid and check the console.";
+            statusEl.innerText = "Error fetching data. Check your Koios Token limits and console logs.";
         } finally {
             btn.disabled = false;
         }
     }
 
-    function renderList(elementId, items, type) {
+    function renderList(elementId, items, currentEpoch, currentUnix, govLifetime) {
         const container = document.getElementById(elementId);
         container.innerHTML = ""; 
 
         if (items.length === 0) {
-            container.innerHTML = `<p style="color: var(--text-muted);">No items found.</p>`;
+            container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No items to display here.</p>`;
             return;
         }
 
@@ -296,28 +372,116 @@
             const div = document.createElement("div");
             div.className = "proposal-item";
             
-            const badgeClass = type === "pending" ? "pending" : "voted";
-            const badgeText = type === "pending" ? "Needs Vote" : "Voted";
-
             const txHash = item.proposal_tx_hash;
             const index = item.proposal_index;
-            
-            // Map the correct property 'proposal_type'
-            const rawType = item.proposal_type;
-            const typeLabel = typeMapping[rawType] || rawType || "Governance Action"; 
-            
-            // Generate official GovTool Link
-            const govToolLink = `https://gov.tools/governance_actions/${txHash}`;
+            const rawType = item.proposal_type || item.action_type;
+            const mapped = typeMapping[rawType] || { label: rawType || "Action", class: 'bg-default' };
+            const fallbackTitle = `${mapped.label} #${index}`;
+            const titleId = `title-${txHash}-${index}`;
+            const govToolLink = `https://gov.tools/governance_actions/${txHash}#${index}`;
 
+            // --- DATE LOGIC ---
+            // 1. Calculate Submitted Date
+            let submittedStr = "Unknown";
+            const blockTime = item.block_time; // Unix Epoch in seconds
+            if (blockTime) {
+                const d = new Date(blockTime * 1000);
+                submittedStr = `${d.toLocaleDateString()} at ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            }
+
+            // 2. Calculate Expiration Deadlines
+            let expireText = "Calculating...";
+            let proposalEpoch = item.epoch_no || item.active_epoch; 
+
+            // If API didn't provide the exact epoch, estimate it via unix timestamp diff
+            if (!proposalEpoch && blockTime) {
+                const secondsDiff = currentUnix - blockTime;
+                const epochsDiff = Math.floor(secondsDiff / 432000); // 432000 seconds = 1 Epoch
+                proposalEpoch = currentEpoch - epochsDiff;
+            }
+
+            if (proposalEpoch && govLifetime) {
+                const expireEpoch = proposalEpoch + govLifetime;
+                const epochsLeft = expireEpoch - currentEpoch;
+                
+                if (epochsLeft < 0) {
+                    expireText = `<span style="color: var(--pending); font-weight: bold;">Expired in Epoch ${expireEpoch}</span>`;
+                } else {
+                    const estDaysLeft = epochsLeft * 5; // 5 days per epoch
+                    expireText = `<span style="color: var(--voted); font-weight: bold;">Epoch ${expireEpoch}</span> (~${estDaysLeft} days left)`;
+                }
+            }
+
+            // Construct Card HTML
             div.innerHTML = `
-                <span class="badge ${badgeClass}">${badgeText}</span>
-                <h3 style="margin: 0.5rem 0;">${typeLabel}</h3>
-                <p style="margin: 0;"><strong>Index:</strong> ${index}</p>
-                <div class="hash-text"><strong>Tx Hash:</strong><br>${txHash}</div>
-                <a href="${govToolLink}" target="_blank" class="action-link">↗ View Proposal Details on GovTool</a>
+                <div class="proposal-header">
+                    <span class="badge ${mapped.class}">${mapped.label}</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Index: ${index}</span>
+                </div>
+                
+                <h3 id="${titleId}">Fetching Metadata Title...</h3>
+                
+                <div class="meta-grid">
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Submitted Date</span><br>
+                        <strong>${submittedStr}</strong>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Deadline / Expiration</span><br>
+                        ${expireText}
+                    </div>
+                </div>
+
+                <div class="hash-text"><strong>Tx:</strong> ${txHash}</div>
+                <a href="${govToolLink}" target="_blank" class="action-link">↗ View Proposal on GovTool</a>
             `;
             container.appendChild(div);
+
+            // Trigger Background Metadata Fetching
+            const metaUrl = item.meta_url || item.proposal_meta_url || null;
+            resolveMetadataTitle(metaUrl, titleId, fallbackTitle);
         });
+    }
+
+    // Background function to resolve Off-Chain Metadata titles without freezing the UI
+    async function resolveMetadataTitle(url, elementId, fallbackTitle) {
+        const titleEl = document.getElementById(elementId);
+        
+        if (!url) {
+            titleEl.innerText = fallbackTitle;
+            return;
+        }
+
+        // Convert ipfs:// protocols to a reliable HTTP gateway
+        let fetchUrl = url;
+        if (url.startsWith('ipfs://')) {
+            fetchUrl = url.replace('ipfs://', 'https://cf-ipfs.com/ipfs/');
+        }
+
+        try {
+            // Give it 4 seconds to load from IPFS, otherwise fallback so UI doesn't look stuck
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000); 
+            
+            const res = await fetch(fetchUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                // CIP-108 JSON usually puts the title inside body.title
+                const foundTitle = data?.body?.title || data?.title; 
+                
+                if (foundTitle) {
+                    titleEl.innerText = foundTitle;
+                    return; // Success!
+                }
+            }
+        } catch (e) {
+            console.warn("Could not load off-chain metadata for:", fetchUrl);
+        }
+
+        // If fetch fails, falls back to Action Type + Index
+        titleEl.innerText = fallbackTitle; 
     }
 </script>
 
