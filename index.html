@@ -6,7 +6,7 @@
     <title>DRep Governance Dashboard</title>
     <style>
         :root {
-            --primary: #0033AD; /* Cardano Blue */
+            --primary: #0033AD;
             --bg-color: #f4f7f6;
             --card-bg: #ffffff;
             --text-main: #333333;
@@ -35,17 +35,28 @@
             margin-bottom: 2rem;
         }
 
-        .input-section {
+        .card {
             background: var(--card-bg);
             padding: 1.5rem;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: flex;
-            gap: 1rem;
+        }
+
+        .settings-panel {
             margin-bottom: 2rem;
         }
 
-        input[type="text"] {
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .input-group { flex-direction: column; }
+        }
+
+        input {
             flex: 1;
             padding: 0.75rem;
             border: 1px solid var(--border);
@@ -63,6 +74,7 @@
             font-size: 1rem;
             cursor: pointer;
             transition: background-color 0.2s;
+            white-space: nowrap;
         }
 
         button:hover { background-color: #002277; }
@@ -76,13 +88,6 @@
 
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: 1fr; }
-        }
-
-        .card {
-            background: var(--card-bg);
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
         .card h2 {
@@ -128,6 +133,12 @@
             margin-bottom: 1rem;
             color: var(--primary);
         }
+
+        .disclaimer {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -138,91 +149,99 @@
         <p>Track active proposals and your pending votes instantly.</p>
     </header>
 
-    <div class="input-section">
-        <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (e.g., drep1...)">
-        <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
+    <div class="card settings-panel">
+        <h2>Settings & Connection</h2>
+        <div class="input-group">
+            <input type="password" id="apiTokenInput" placeholder="Koios API Token">
+            <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
+            <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
+        </div>
+        <p class="disclaimer">
+            *Koios restricts browser requests (CORS) on their anonymous tier. To use this, you need a <a href="https://koios.rest/pricing/Pricing.html" target="_blank">Free Tier API Token from Koios</a>. Your token is securely stored in your browser's local storage and is never uploaded to GitHub.
+        </p>
     </div>
 
     <div id="status"></div>
 
     <div class="dashboard-grid">
-        <!-- Pending Column -->
         <div class="card">
             <h2>Needs Your Vote (Pending)</h2>
             <div id="pendingList">
-                <p style="color: var(--text-muted);">Enter your DRep ID to see pending votes.</p>
+                <p style="color: var(--text-muted);">Enter your info above and click fetch.</p>
             </div>
         </div>
 
-        <!-- Voted Column -->
         <div class="card">
             <h2>Already Voted On</h2>
             <div id="votedList">
-                <p style="color: var(--text-muted);">Enter your DRep ID to see your history.</p>
+                <p style="color: var(--text-muted);">Enter your info above and click fetch.</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- Configuration ---
     const KOIOS_API = "https://api.koios.rest/api/v1";
 
-    // --- On Load ---
     document.addEventListener("DOMContentLoaded", () => {
         const savedDRep = localStorage.getItem("savedDrepId");
-        if (savedDRep) {
-            document.getElementById("drepIdInput").value = savedDRep;
-        }
+        const savedToken = localStorage.getItem("savedKoiosToken");
+        
+        if (savedDRep) document.getElementById("drepIdInput").value = savedDRep;
+        if (savedToken) document.getElementById("apiTokenInput").value = savedToken;
     });
 
-    // --- Main Logic ---
     async function runDashboard() {
         const drepId = document.getElementById("drepIdInput").value.trim();
+        const apiToken = document.getElementById("apiTokenInput").value.trim();
         const statusEl = document.getElementById("status");
         const btn = document.getElementById("fetchBtn");
+
+        if (!apiToken) {
+            alert("Please enter your Koios Free Tier API Token. This is required to bypass CORS restrictions.");
+            return;
+        }
 
         if (!drepId) {
             alert("Please enter a DRep ID.");
             return;
         }
 
-        // Save to local storage for convenience
+        // Save to local storage for convenience (never leaves your browser)
         localStorage.setItem("savedDrepId", drepId);
+        localStorage.setItem("savedKoiosToken", apiToken);
 
         btn.disabled = true;
         statusEl.innerText = "Fetching data from Koios API...";
         document.getElementById("pendingList").innerHTML = "";
         document.getElementById("votedList").innerHTML = "";
 
+        // Injecting the token into the Authorization header bypasses the CORS block
+        const headers = {
+            "Authorization": `Bearer ${apiToken}`,
+            "Accept": "application/json"
+        };
+
         try {
-            // 1. Fetch all proposals & DRep specific votes concurrently
             const [proposalsRes, votesRes] = await Promise.all([
-                fetch(`${KOIOS_API}/proposal_list`), 
-                fetch(`${KOIOS_API}/drep_votes?_drep_id=${drepId}`) 
+                fetch(`${KOIOS_API}/proposal_list`, { headers }), 
+                fetch(`${KOIOS_API}/drep_votes?_drep_id=${drepId}`, { headers }) 
             ]);
 
-            if (!proposalsRes.ok) throw new Error("Failed to fetch proposals");
-            if (!votesRes.ok) throw new Error("Failed to fetch DRep votes");
+            if (!proposalsRes.ok) throw new Error(`Failed to fetch proposals: ${proposalsRes.statusText}`);
+            if (!votesRes.ok) throw new Error(`Failed to fetch DRep votes: ${votesRes.statusText}`);
 
             const allProposals = await proposalsRes.json();
             const drepVotes = await votesRes.json();
 
-            // 2. Filter for Active Proposals (You may need to adjust the exact status string based on network epoch)
-            // Note: Koios returns 'expired', 'ratified', etc. We want things that are still active/deliberating.
             const activeProposals = allProposals.filter(p => !p.expired && !p.ratified && !p.enacted && !p.dropped);
-
-            // 3. Create a Set of unique IDs the DRep HAS voted on for quick lookup
-            // Unique key format: txHash#index
             const votedSet = new Set(drepVotes.map(v => `${v.proposal_tx_hash}#${v.proposal_index}`));
 
-            // 4. Calculate Pending vs Voted
             const pending = [];
             const voted = [];
 
             activeProposals.forEach(proposal => {
                 const uniqueId = `${proposal.proposal_tx_hash}#${proposal.proposal_index}`;
-                
                 if (votedSet.has(uniqueId)) {
                     voted.push(proposal);
                 } else {
@@ -230,7 +249,6 @@
                 }
             });
 
-            // 5. Render to UI
             renderList("pendingList", pending, "pending");
             renderList("votedList", voted, "voted");
 
@@ -238,19 +256,18 @@
 
         } catch (error) {
             console.error(error);
-            statusEl.innerText = "Error fetching data. Check console for details or verify your DRep ID.";
+            statusEl.innerText = "Error fetching data. Ensure your API Token is valid and check the console.";
         } finally {
             btn.disabled = false;
         }
     }
 
-    // --- UI Rendering ---
     function renderList(elementId, items, type) {
         const container = document.getElementById(elementId);
-        container.innerHTML = ""; // Clear existing
+        container.innerHTML = ""; 
 
         if (items.length === 0) {
-            container.innerHTML = `<p style="color: var(--text-muted);">No items found in this category.</p>`;
+            container.innerHTML = `<p style="color: var(--text-muted);">No items found.</p>`;
             return;
         }
 
@@ -261,10 +278,8 @@
             const badgeClass = type === "pending" ? "pending" : "voted";
             const badgeText = type === "pending" ? "Needs Vote" : "Voted";
 
-            // Koios specific field names
             const txHash = item.proposal_tx_hash;
             const index = item.proposal_index;
-            // Map the action type from on-chain integer (CIP-1694 spec) if available, otherwise fallback
             const typeLabel = item.action_type || "Governance Action"; 
 
             div.innerHTML = `
