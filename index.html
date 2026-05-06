@@ -242,11 +242,29 @@
             const voted = [];
             const missed = [];
 
-            // Updated Bucket Logic
+            // Refactored Bucket Logic: Pre-calculate the exact math here to align with the UI
             allProposals.forEach(proposal => {
                 const uniqueId = `${proposal.proposal_tx_hash}#${proposal.proposal_index}`;
                 const isVoted = votedSet.has(uniqueId);
-                const isEnded = proposal.expired || proposal.ratified || proposal.enacted || proposal.dropped;
+                
+                // 1. Math Calculation 
+                let proposalEpoch = proposal.epoch_no || proposal.active_epoch; 
+                if (!proposalEpoch && proposal.block_time) {
+                    const epochsDiff = Math.floor((currentUnix - proposal.block_time) / 432000); 
+                    proposalEpoch = currentEpoch - epochsDiff;
+                }
+
+                let isExpiredByMath = false;
+                if (proposalEpoch && govLifetime) {
+                    proposal.expireEpoch = proposalEpoch + govLifetime; // Storing it to save UI calculation time later
+                    proposal.epochsLeft = proposal.expireEpoch - currentEpoch; // Storing it to save UI calculation time later
+                    if (proposal.epochsLeft < 0) {
+                        isExpiredByMath = true;
+                    }
+                }
+
+                // 2. Truth Check (API flags OR Math calculation)
+                const isEnded = proposal.expired || proposal.ratified || proposal.enacted || proposal.dropped || isExpiredByMath;
 
                 if (isVoted) {
                     voted.push(proposal);
@@ -261,9 +279,9 @@
             document.getElementById("tab-voted").innerText = `Voted (${voted.length})`;
             document.getElementById("tab-missed").innerText = `Expired without Vote (${missed.length})`;
 
-            renderList("pendingList", pending, currentEpoch, currentUnix, govLifetime);
-            renderList("votedList", voted, currentEpoch, currentUnix, govLifetime);
-            renderList("missedList", missed, currentEpoch, currentUnix, govLifetime);
+            renderList("pendingList", pending);
+            renderList("votedList", voted);
+            renderList("missedList", missed);
 
             statusEl.innerText = `Data Synced!`;
 
@@ -275,7 +293,8 @@
         }
     }
 
-    function renderList(elementId, items, currentEpoch, currentUnix, govLifetime) {
+    // Refactored Renderer using the pre-calculated object properties
+    function renderList(elementId, items) {
         const container = document.getElementById(elementId);
         container.innerHTML = ""; 
 
@@ -303,27 +322,17 @@
             }
 
             let expireText = "Calculating...";
-            let proposalEpoch = item.epoch_no || item.active_epoch; 
-
-            if (!proposalEpoch && item.block_time) {
-                const epochsDiff = Math.floor((currentUnix - item.block_time) / 432000); 
-                proposalEpoch = currentEpoch - epochsDiff;
-            }
-
-            if (proposalEpoch && govLifetime) {
-                const expireEpoch = proposalEpoch + govLifetime;
-                const epochsLeft = expireEpoch - currentEpoch;
-                
-                if (epochsLeft < 0 || item.expired || item.ratified || item.enacted || item.dropped) {
+            if (item.expireEpoch) {
+                if (item.epochsLeft < 0 || item.expired || item.ratified || item.enacted || item.dropped) {
                     let statusLabel = "Ended";
                     if (item.expired) statusLabel = "Expired";
                     if (item.ratified) statusLabel = "Ratified";
                     if (item.enacted) statusLabel = "Enacted";
                     if (item.dropped) statusLabel = "Dropped";
-                    expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} in Epoch ${expireEpoch}</span>`;
+                    expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} in Epoch ${item.expireEpoch}</span>`;
                 } else {
-                    const estDaysLeft = epochsLeft * 5; 
-                    expireText = `<span style="color: var(--voted); font-weight: bold;">Epoch ${expireEpoch}</span> (~${estDaysLeft} days left)`;
+                    const estDaysLeft = item.epochsLeft * 5; 
+                    expireText = `<span style="color: var(--voted); font-weight: bold;">Epoch ${item.expireEpoch}</span> (~${estDaysLeft} days left)`;
                 }
             }
 
@@ -356,31 +365,26 @@
         });
     }
 
-    // IPFS Gateway Fallback Logic
     async function fetchFromIpfs(ipfsHash) {
         for (const gateway of IPFS_GATEWAYS) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5s timeout per gateway
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
                 const res = await fetch(`${gateway}${ipfsHash}`, { signal: controller.signal });
                 clearTimeout(timeoutId);
                 
                 if (res.ok) return await res.json();
-            } catch (e) {
-                // Gateway failed, loop moves to the next one automatically
-            }
+            } catch (e) {}
         }
         throw new Error("All public IPFS gateways failed.");
     }
 
     async function resolveMetadataTitle(url, elementId, fallbackTitle) {
         const titleEl = document.getElementById(elementId);
-        
         if (!url) { titleEl.innerText = fallbackTitle; return; }
 
         try {
             let data;
-            // Handle HTTP vs IPFS
             if (url.startsWith('http')) {
                 const res = await fetch(url);
                 if (res.ok) data = await res.json();
@@ -390,7 +394,6 @@
                 data = await fetchFromIpfs(ipfsHash);
             }
 
-            // CIP-108 JSON formatting standard check
             const foundTitle = data?.body?.title || data?.title || data?.givenName; 
             if (foundTitle) {
                 titleEl.innerText = foundTitle;
@@ -399,8 +402,6 @@
         } catch (e) {
             console.warn(`Could not load metadata for ${url}`);
         }
-
-        // Failsafe
         titleEl.innerText = fallbackTitle; 
     }
 </script>
