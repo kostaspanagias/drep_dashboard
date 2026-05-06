@@ -53,7 +53,6 @@
         button.primary-btn:hover { background-color: #002277; }
         button.primary-btn:disabled { background-color: #999; cursor: not-allowed; }
 
-        /* Secondary Controls (Sort & Filter) */
         .controls-bar {
             display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1.5rem; align-items: center;
         }
@@ -65,7 +64,6 @@
         }
         .control-item:hover { background-color: #e4e4e4; }
 
-        /* Tabs UI */
         .tabs {
             display: flex; border-bottom: 2px solid var(--border);
             margin-bottom: 1rem; flex-wrap: wrap;
@@ -84,7 +82,6 @@
         .view { display: none; }
         .view.active { display: block; }
 
-        /* Proposal Item Styles */
         .proposal-item {
             border: 1px solid var(--border); border-radius: 6px;
             padding: 1.25rem; margin-bottom: 1.25rem; background: #fafafa;
@@ -150,24 +147,23 @@
 
     <div id="status"></div>
 
-    <!-- Toggle Tabs -->
     <div class="tabs">
         <button id="tab-pending" class="tab active" onclick="switchTab('pending')">Needs Vote (0)</button>
         <button id="tab-voted" class="tab" onclick="switchTab('voted')">Voted (0)</button>
         <button id="tab-missed" class="tab" onclick="switchTab('missed')">Expired (0)</button>
     </div>
 
-    <!-- Sorting & Filtering Controls -->
     <div class="controls-bar">
+        <!-- Filter dropdown now uses perfectly normalized values -->
         <select id="typeFilter" class="control-item" onchange="applySortAndRender()" style="display: none;">
             <option value="all">All Action Types</option>
-            <option value="parameter_change">Parameter Change</option>
-            <option value="hard_fork_initiation">Hard-Fork Initiation</option>
-            <option value="treasury_withdrawals">Treasury Withdrawal</option>
-            <option value="no_confidence">Motion of No-Confidence</option>
-            <option value="update_committee">Update Committee</option>
-            <option value="new_constitution">New Constitution</option>
-            <option value="info_action">Info Action</option>
+            <option value="parameterchange">Parameter Change</option>
+            <option value="hardforkinitiation">Hard-Fork Initiation</option>
+            <option value="treasurywithdrawals">Treasury Withdrawal</option>
+            <option value="noconfidence">Motion of No-Confidence</option>
+            <option value="updatecommittee">Update Committee</option>
+            <option value="newconstitution">New Constitution</option>
+            <option value="infoaction">Info Action</option>
         </select>
 
         <button id="sortBtn" class="control-item" onclick="toggleSort()" style="display: none;">
@@ -175,17 +171,14 @@
         </button>
     </div>
 
-    <!-- Tab Content: Pending -->
     <div id="view-pending" class="view active card">
         <div id="pendingList"><div class="empty-state">Enter info above and fetch.</div></div>
     </div>
 
-    <!-- Tab Content: Voted -->
     <div id="view-voted" class="view card">
         <div id="votedList"><div class="empty-state">Enter info above and fetch.</div></div>
     </div>
 
-    <!-- Tab Content: Missed -->
     <div id="view-missed" class="view card">
         <div id="missedList"><div class="empty-state">Enter info above and fetch.</div></div>
     </div>
@@ -200,21 +193,27 @@
         "https://gateway.pinata.cloud/ipfs/"
     ];
 
+    // Mapped strictly to fully normalized strings (no spaces, no underscores, all lowercase)
     const typeMapping = {
-        'parameter_change': { label: 'Parameter Change', class: 'bg-parameter' },
-        'hard_fork_initiation': { label: 'Hard-Fork', class: 'bg-hardfork' },
-        'treasury_withdrawals': { label: 'Treasury', class: 'bg-treasury' },
-        'no_confidence': { label: 'No Confidence', class: 'bg-noconfidence' },
-        'update_committee': { label: 'Update Committee', class: 'bg-committee' },
-        'new_constitution': { label: 'New Constitution', class: 'bg-constitution' },
-        'info_action': { label: 'Info Action', class: 'bg-info' }
+        'parameterchange': { label: 'Parameter Change', class: 'bg-parameter' },
+        'hardforkinitiation': { label: 'Hard-Fork', class: 'bg-hardfork' },
+        'treasurywithdrawals': { label: 'Treasury', class: 'bg-treasury' },
+        'noconfidence': { label: 'No Confidence', class: 'bg-noconfidence' },
+        'updatecommittee': { label: 'Update Committee', class: 'bg-committee' },
+        'newconstitution': { label: 'New Constitution', class: 'bg-constitution' },
+        'infoaction': { label: 'Info Action', class: 'bg-info' }
     };
 
-    // Global State
     let globalPending = [];
     let globalVoted = [];
     let globalMissed = [];
     let sortClosestFirst = true;
+
+    // Helper function to strip all formatting from the API string
+    function normalizeString(str) {
+        if (!str) return "";
+        return str.replace(/[_-\s]/g, '').toLowerCase();
+    }
 
     function switchTab(tabId) {
         ['pending', 'voted', 'missed'].forEach(id => {
@@ -312,7 +311,6 @@
                 }
             });
 
-            // Show controls and immediately apply default sort/filter
             document.getElementById("sortBtn").style.display = "inline-block";
             document.getElementById("typeFilter").style.display = "inline-block";
             applySortAndRender();
@@ -327,27 +325,25 @@
         }
     }
 
-    // The Master Function for Sorting & Filtering
     function applySortAndRender() {
         const filterValue = document.getElementById("typeFilter").value;
 
-        // 1. Filter Logic
+        // Uses normalized strings for bulletproof matching
         const filterFn = (item) => {
             if (filterValue === "all") return true;
             const rawType = item.proposal_type || item.action_type;
-            return rawType === filterValue;
+            const normalizedType = normalizeString(rawType);
+            return normalizedType === filterValue;
         };
 
         const filteredPending = globalPending.filter(filterFn);
         const filteredVoted = globalVoted.filter(filterFn);
         const filteredMissed = globalMissed.filter(filterFn);
 
-        // Update the numbers inside the tabs so the user knows exactly how many match the filter
         document.getElementById("tab-pending").innerText = `Needs Vote (${filteredPending.length})`;
         document.getElementById("tab-voted").innerText = `Voted (${filteredVoted.length})`;
         document.getElementById("tab-missed").innerText = `Expired (${filteredMissed.length})`;
 
-        // 2. Sort Logic
         const sortFn = (a, b) => {
             if (sortClosestFirst) return a.epochsLeft - b.epochsLeft;
             return b.epochsLeft - a.epochsLeft; 
@@ -357,7 +353,6 @@
         filteredVoted.sort(sortFn);
         filteredMissed.sort(sortFn);
 
-        // 3. Render
         renderList("pendingList", filteredPending);
         renderList("votedList", filteredVoted);
         renderList("missedList", filteredMissed);
@@ -378,8 +373,12 @@
             
             const txHash = item.proposal_tx_hash;
             const index = item.proposal_index;
+            
+            // Normalize the raw API type to fetch the exact color mapping
             const rawType = item.proposal_type || item.action_type;
-            const mapped = typeMapping[rawType] || { label: rawType || "Action", class: 'bg-default' };
+            const normalizedType = normalizeString(rawType);
+            const mapped = typeMapping[normalizedType] || { label: rawType || "Action", class: 'bg-default' };
+            
             const fallbackTitle = `${mapped.label} #${index}`;
             const titleId = `title-${txHash}-${index}`;
             const govToolLink = `https://gov.tools/governance_actions/${txHash}#${index}`;
