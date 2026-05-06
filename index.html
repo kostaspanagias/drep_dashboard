@@ -117,11 +117,18 @@
             color: var(--text-muted); background: #eee; padding: 0.5rem; border-radius: 4px;
         }
 
+        .action-links-container {
+            display: flex; gap: 1.5rem; margin-top: 1rem; align-items: center; flex-wrap: wrap;
+        }
+
         .action-link {
-            display: inline-block; margin-top: 1rem; font-size: 0.9rem;
-            color: var(--link); text-decoration: none; font-weight: bold;
+            font-size: 0.9rem; color: var(--link); text-decoration: none; font-weight: bold;
         }
         .action-link:hover { text-decoration: underline; }
+        
+        .action-link.secondary {
+            color: var(--text-muted);
+        }
 
         #status { text-align: center; font-weight: bold; margin-bottom: 1rem; color: var(--primary); }
         .disclaimer { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; }
@@ -154,7 +161,6 @@
     </div>
 
     <div class="controls-bar">
-        <!-- Filter dropdown now uses perfectly normalized values -->
         <select id="typeFilter" class="control-item" onchange="applySortAndRender()" style="display: none;">
             <option value="all">All Action Types</option>
             <option value="parameterchange">Parameter Change</option>
@@ -193,7 +199,6 @@
         "https://gateway.pinata.cloud/ipfs/"
     ];
 
-    // Mapped strictly to fully normalized strings (no spaces, no underscores, all lowercase)
     const typeMapping = {
         'parameterchange': { label: 'Parameter Change', class: 'bg-parameter' },
         'hardforkinitiation': { label: 'Hard-Fork', class: 'bg-hardfork' },
@@ -209,7 +214,6 @@
     let globalMissed = [];
     let sortClosestFirst = true;
 
-    // Helper function to strip all formatting from the API string
     function normalizeString(str) {
         if (!str) return "";
         return str.replace(/[_-\s]/g, '').toLowerCase();
@@ -328,7 +332,6 @@
     function applySortAndRender() {
         const filterValue = document.getElementById("typeFilter").value;
 
-        // Uses normalized strings for bulletproof matching
         const filterFn = (item) => {
             if (filterValue === "all") return true;
             const rawType = item.proposal_type || item.action_type;
@@ -374,7 +377,6 @@
             const txHash = item.proposal_tx_hash;
             const index = item.proposal_index;
             
-            // Normalize the raw API type to fetch the exact color mapping
             const rawType = item.proposal_type || item.action_type;
             const normalizedType = normalizeString(rawType);
             const mapped = typeMapping[normalizedType] || { label: rawType || "Action", class: 'bg-default' };
@@ -382,6 +384,18 @@
             const fallbackTitle = `${mapped.label} #${index}`;
             const titleId = `title-${txHash}-${index}`;
             const govToolLink = `https://gov.tools/governance_actions/${txHash}#${index}`;
+
+            // Anchor URL processing
+            const metaUrl = item.meta_url || item.proposal_meta_url || null;
+            let rawLinkHtml = "";
+            if (metaUrl) {
+                // Convert IPFS link to standard HTTP Gateway link so users can click and view it
+                let clickableUrl = metaUrl;
+                if (metaUrl.startsWith('ipfs://')) {
+                    clickableUrl = metaUrl.replace('ipfs://', 'https://ipfs.io/ipfs/');
+                }
+                rawLinkHtml = `<a href="${clickableUrl}" target="_blank" class="action-link secondary">📄 View Raw Anchor</a>`;
+            }
 
             let submittedStr = "Unknown";
             if (item.block_time) {
@@ -424,11 +438,14 @@
                 </div>
 
                 <div class="hash-text"><strong>Tx:</strong> ${txHash}</div>
-                <a href="${govToolLink}" target="_blank" class="action-link">↗ View on GovTool</a>
+                
+                <div class="action-links-container">
+                    <a href="${govToolLink}" target="_blank" class="action-link">↗ View on GovTool</a>
+                    ${rawLinkHtml}
+                </div>
             `;
             container.appendChild(div);
 
-            const metaUrl = item.meta_url || item.proposal_meta_url || null;
             resolveMetadataTitle(metaUrl, titleId, fallbackTitle);
         });
     }
