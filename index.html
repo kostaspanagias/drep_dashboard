@@ -12,9 +12,8 @@
             --text-main: #333333;
             --text-muted: #666666;
             --border: #e0e0e0;
-            --pending: #d9534f; /* Red */
-            --voted: #5cb85c;   /* Green */
-            --missed: #f0ad4e;  /* Orange */
+            --pending: #d9534f; 
+            --voted: #5cb85c;   
             --link: #0055ff;
         }
 
@@ -46,18 +45,26 @@
             border-radius: 4px; font-size: 1rem; font-family: monospace;
         }
 
-        button {
+        button.primary-btn {
             background-color: var(--primary); color: white; border: none;
             padding: 0.75rem 1.5rem; border-radius: 4px; font-size: 1rem;
             cursor: pointer; transition: background-color 0.2s; white-space: nowrap;
         }
-        button:hover { background-color: #002277; }
-        button:disabled { background-color: #999; cursor: not-allowed; }
+        button.primary-btn:hover { background-color: #002277; }
+        button.primary-btn:disabled { background-color: #999; cursor: not-allowed; }
+
+        /* Secondary Button for Sorting */
+        button.sort-btn {
+            background-color: #f0f0f0; color: var(--text-main); border: 1px solid var(--border);
+            padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.9rem; font-weight: bold;
+            cursor: pointer; transition: background 0.2s;
+        }
+        button.sort-btn:hover { background-color: #e4e4e4; }
 
         /* Tabs UI */
         .tabs {
             display: flex; border-bottom: 2px solid var(--border);
-            margin-bottom: 1.5rem; flex-wrap: wrap;
+            margin-bottom: 1rem; flex-wrap: wrap;
         }
 
         .tab {
@@ -68,6 +75,10 @@
         .tab:hover { color: var(--text-main); }
         .tab.active {
             color: var(--primary); border-bottom: 3px solid var(--primary); margin-bottom: -2px;
+        }
+
+        .controls-bar {
+            display: flex; justify-content: flex-end; margin-bottom: 1.5rem;
         }
 
         .view { display: none; }
@@ -86,17 +97,18 @@
         .badge {
             display: inline-block; padding: 0.35rem 0.65rem; border-radius: 4px;
             font-size: 0.75rem; font-weight: bold; color: white; text-transform: uppercase;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* Action Type Colors */
-        .bg-parameter { background-color: #8b5cf6; }
-        .bg-hardfork { background-color: #ef4444; }
-        .bg-treasury { background-color: #10b981; }
-        .bg-noconfidence { background-color: #f97316; }
-        .bg-committee { background-color: #3b82f6; }
-        .bg-constitution { background-color: #06b6d4; }
-        .bg-info { background-color: #6b7280; }
-        .bg-default { background-color: #333333; }
+        /* VIBRANT ACTION TYPE COLORS */
+        .bg-parameter { background-color: #9333ea; }      /* Deep Purple */
+        .bg-hardfork { background-color: #dc2626; }       /* Strong Red */
+        .bg-treasury { background-color: #16a34a; }       /* Emerald Green */
+        .bg-noconfidence { background-color: #ea580c; }   /* Burnt Orange */
+        .bg-committee { background-color: #2563eb; }      /* Royal Blue */
+        .bg-constitution { background-color: #0891b2; }   /* Cyan */
+        .bg-info { background-color: #4b5563; }           /* Slate Gray */
+        .bg-default { background-color: #333333; }        /* Dark */
 
         .meta-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
@@ -117,8 +129,6 @@
 
         #status { text-align: center; font-weight: bold; margin-bottom: 1rem; color: var(--primary); }
         .disclaimer { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; }
-        
-        /* Empty State */
         .empty-state { text-align: center; color: var(--text-muted); padding: 2rem; }
     </style>
 </head>
@@ -127,14 +137,14 @@
 <div class="container">
     <header>
         <h1>DRep Organizer</h1>
-        <p>Track active proposals, dates, and pending votes.</p>
+        <p>Track active proposals, deadlines, and pending votes.</p>
     </header>
 
     <div class="card">
         <div class="input-group">
             <input type="password" id="apiTokenInput" placeholder="Koios API Token">
             <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
-            <button id="fetchBtn" onclick="runDashboard()">Fetch Data</button>
+            <button id="fetchBtn" class="primary-btn" onclick="runDashboard()">Fetch Data</button>
         </div>
         <p class="disclaimer">*Requires a Free Tier API Token from Koios. Stored locally in your browser.</p>
     </div>
@@ -145,7 +155,14 @@
     <div class="tabs">
         <button id="tab-pending" class="tab active" onclick="switchTab('pending')">Needs Vote (0)</button>
         <button id="tab-voted" class="tab" onclick="switchTab('voted')">Voted (0)</button>
-        <button id="tab-missed" class="tab" onclick="switchTab('missed')">Expired without Vote (0)</button>
+        <button id="tab-missed" class="tab" onclick="switchTab('missed')">Expired (0)</button>
+    </div>
+
+    <!-- Sorting Control -->
+    <div class="controls-bar">
+        <button id="sortBtn" class="sort-btn" onclick="toggleSort()" style="display: none;">
+            Deadline: Closest First ⬇️
+        </button>
     </div>
 
     <!-- Tab Content: Pending -->
@@ -166,8 +183,6 @@
 
 <script>
     const KOIOS_API = "https://api.koios.rest/api/v1";
-
-    // Fallback array of public IPFS gateways to guarantee metadata loading
     const IPFS_GATEWAYS = [
         "https://ipfs.io/ipfs/",
         "https://dweb.link/ipfs/",
@@ -185,6 +200,12 @@
         'info_action': { label: 'Info Action', class: 'bg-info' }
     };
 
+    // --- Global State for Sorting ---
+    let globalPending = [];
+    let globalVoted = [];
+    let globalMissed = [];
+    let sortClosestFirst = true; // Default: Closest deadlines at the top
+
     function switchTab(tabId) {
         ['pending', 'voted', 'missed'].forEach(id => {
             document.getElementById(`tab-${id}`).classList.remove('active');
@@ -192,6 +213,19 @@
         });
         document.getElementById(`tab-${tabId}`).classList.add('active');
         document.getElementById(`view-${tabId}`).classList.add('active');
+    }
+
+    function toggleSort() {
+        sortClosestFirst = !sortClosestFirst;
+        const btn = document.getElementById("sortBtn");
+        
+        if (sortClosestFirst) {
+            btn.innerHTML = "Deadline: Closest First ⬇️";
+        } else {
+            btn.innerHTML = "Deadline: Furthest First ⬆️";
+        }
+        
+        applySortAndRender();
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -238,16 +272,16 @@
 
             const votedSet = new Set(drepVotes.map(v => `${v.proposal_tx_hash}#${v.proposal_index}`));
 
-            const pending = [];
-            const voted = [];
-            const missed = [];
+            // Reset Global Arrays
+            globalPending = [];
+            globalVoted = [];
+            globalMissed = [];
 
-            // Refactored Bucket Logic: Pre-calculate the exact math here to align with the UI
             allProposals.forEach(proposal => {
                 const uniqueId = `${proposal.proposal_tx_hash}#${proposal.proposal_index}`;
                 const isVoted = votedSet.has(uniqueId);
                 
-                // 1. Math Calculation 
+                // Epoch Math
                 let proposalEpoch = proposal.epoch_no || proposal.active_epoch; 
                 if (!proposalEpoch && proposal.block_time) {
                     const epochsDiff = Math.floor((currentUnix - proposal.block_time) / 432000); 
@@ -255,35 +289,36 @@
                 }
 
                 let isExpiredByMath = false;
+                proposal.epochsLeft = 999; // Fallback for sorting if math fails
+
                 if (proposalEpoch && govLifetime) {
-                    proposal.expireEpoch = proposalEpoch + govLifetime; // Storing it to save UI calculation time later
-                    proposal.epochsLeft = proposal.expireEpoch - currentEpoch; // Storing it to save UI calculation time later
+                    proposal.expireEpoch = proposalEpoch + govLifetime; 
+                    proposal.epochsLeft = proposal.expireEpoch - currentEpoch; 
                     if (proposal.epochsLeft < 0) {
                         isExpiredByMath = true;
                     }
                 }
 
-                // 2. Truth Check (API flags OR Math calculation)
                 const isEnded = proposal.expired || proposal.ratified || proposal.enacted || proposal.dropped || isExpiredByMath;
 
                 if (isVoted) {
-                    voted.push(proposal);
+                    globalVoted.push(proposal);
                 } else if (isEnded) {
-                    missed.push(proposal);
+                    globalMissed.push(proposal);
                 } else {
-                    pending.push(proposal);
+                    globalPending.push(proposal);
                 }
             });
 
-            document.getElementById("tab-pending").innerText = `Needs Vote (${pending.length})`;
-            document.getElementById("tab-voted").innerText = `Voted (${voted.length})`;
-            document.getElementById("tab-missed").innerText = `Expired without Vote (${missed.length})`;
+            document.getElementById("tab-pending").innerText = `Needs Vote (${globalPending.length})`;
+            document.getElementById("tab-voted").innerText = `Voted (${globalVoted.length})`;
+            document.getElementById("tab-missed").innerText = `Expired (${globalMissed.length})`;
 
-            renderList("pendingList", pending);
-            renderList("votedList", voted);
-            renderList("missedList", missed);
+            // Show Sort Button and Render Sorted Data
+            document.getElementById("sortBtn").style.display = "inline-block";
+            applySortAndRender();
 
-            statusEl.innerText = `Data Synced!`;
+            statusEl.innerText = `Data Synced Successfully!`;
 
         } catch (error) {
             console.error(error);
@@ -293,7 +328,26 @@
         }
     }
 
-    // Refactored Renderer using the pre-calculated object properties
+    function applySortAndRender() {
+        // Sorting Logic based on 'epochsLeft'
+        const sortFn = (a, b) => {
+            if (sortClosestFirst) {
+                return a.epochsLeft - b.epochsLeft; // Smallest number (closest) first
+            } else {
+                return b.epochsLeft - a.epochsLeft; // Largest number (furthest) first
+            }
+        };
+
+        // Create sorted copies of the global arrays
+        const sortedPending = [...globalPending].sort(sortFn);
+        const sortedVoted = [...globalVoted].sort(sortFn);
+        const sortedMissed = [...globalMissed].sort(sortFn);
+
+        renderList("pendingList", sortedPending);
+        renderList("votedList", sortedVoted);
+        renderList("missedList", sortedMissed);
+    }
+
     function renderList(elementId, items) {
         const container = document.getElementById(elementId);
         container.innerHTML = ""; 
@@ -329,10 +383,10 @@
                     if (item.ratified) statusLabel = "Ratified";
                     if (item.enacted) statusLabel = "Enacted";
                     if (item.dropped) statusLabel = "Dropped";
-                    expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} in Epoch ${item.expireEpoch}</span>`;
+                    expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} (Epoch ${item.expireEpoch})</span>`;
                 } else {
                     const estDaysLeft = item.epochsLeft * 5; 
-                    expireText = `<span style="color: var(--voted); font-weight: bold;">Epoch ${item.expireEpoch}</span> (~${estDaysLeft} days left)`;
+                    expireText = `<span style="color: var(--primary); font-weight: bold;">Epoch ${item.expireEpoch}</span> (~${estDaysLeft} days left)`;
                 }
             }
 
