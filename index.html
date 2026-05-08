@@ -227,13 +227,96 @@
             line-height: 1;
         }
         .close-btn:hover { color: var(--pending); }
+
+        /* Epoch Progress Bar */
+        .epoch-progress-container {
+            width: 100%;
+            background-color: #2b2b2b;
+            height: 30px;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            border-bottom: 2px solid #111;
+        }
+        .epoch-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #16a34a, #4ade80);
+            width: 0%;
+            transition: width 1s linear;
+        }
+        .epoch-progress-text {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            box-sizing: border-box;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+
+        /* Calendar Modal Styles */
+        .calendar-modal { max-width: 600px; padding: 2rem; }
+        .calendar-controls {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
+        }
+        .calendar-controls button {
+            background: var(--primary); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+        .calendar-controls button:hover { background: #002277; }
+        .calendar-controls h3 { margin: 0; color: var(--text-main); font-size: 1.2rem; }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        .cal-day-header { text-align: center; font-weight: bold; padding: 0.5rem 0; color: var(--text-muted); font-size: 0.9rem; }
+        .cal-day {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            min-height: 80px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            position: relative;
+        }
+        .cal-day.empty { background: transparent; border: none; }
+        .cal-day.today { border: 2px solid var(--primary); background: #eef2ff; }
+        .day-number { font-size: 0.9rem; font-weight: bold; color: var(--text-main); }
+        .epoch-marker {
+            align-self: flex-start;
+            background: var(--primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: auto;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
 
 <div class="navbar">
     <div class="navbar-brand">DRep Dashboard</div>
-    <button class="settings-btn" onclick="openSettings()">⚙️ Settings</button>
+    <div style="display: flex; gap: 1rem;">
+        <button class="settings-btn" style="background: linear-gradient(to bottom, #4a90e2, #357abd); border-color: #2a6496;" onclick="openCalendar()">📅 Epoch Calendar</button>
+        <button class="settings-btn" onclick="openSettings()">⚙️ Settings</button>
+    </div>
+</div>
+
+<div class="epoch-progress-container">
+    <div class="epoch-progress-bar" id="epochProgressBar"></div>
+    <div class="epoch-progress-text">
+        <span id="epochStartText">Loading Epoch...</span>
+        <span id="epochEndText"></span>
+    </div>
 </div>
 
 <div id="settingsModal" class="modal-overlay">
@@ -246,6 +329,29 @@
             <button id="fetchBtn" class="primary-btn" onclick="fetchAndClose()">Save & Fetch Data</button>
         </div>
         <p class="disclaimer">*Requires a Free Tier API Token from Koios. Stored locally in your browser.</p>
+    </div>
+</div>
+
+<div id="calendarModal" class="modal-overlay">
+    <div class="modal-content calendar-modal">
+        <button class="close-btn" onclick="closeCalendar()">&times;</button>
+        <h2 style="margin-bottom: 0.5rem;">Cardano Epoch Calendar</h2>
+        <p class="disclaimer" style="margin-top: 0; margin-bottom: 1.5rem;">Epochs run for exactly 5 days (432,000 seconds).</p>
+        <div class="calendar-controls">
+            <button onclick="changeMonth(-1)">◀ Prev</button>
+            <h3 id="calendarMonthLabel">Month Year</h3>
+            <button onclick="changeMonth(1)">Next ▶</button>
+        </div>
+        <div class="calendar-grid">
+            <div class="cal-day-header">Sun</div>
+            <div class="cal-day-header">Mon</div>
+            <div class="cal-day-header">Tue</div>
+            <div class="cal-day-header">Wed</div>
+            <div class="cal-day-header">Thu</div>
+            <div class="cal-day-header">Fri</div>
+            <div class="cal-day-header">Sat</div>
+        </div>
+        <div id="calendarDays" class="calendar-grid"></div>
     </div>
 </div>
 
@@ -358,6 +464,113 @@
         closeSettings();
     }
 
+    // --- EPOCH MATH & CALENDAR LOGIC ---
+    const EPOCH_208_START = 1596059091; // Unix timestamp for Epoch 208 start
+    const EPOCH_LENGTH = 432000; // 5 days in seconds
+
+    function getEpochData(unixTime) {
+        const secondsSince = unixTime - EPOCH_208_START;
+        const epochsSince = Math.floor(secondsSince / EPOCH_LENGTH);
+        const epochNo = 208 + epochsSince;
+        const startUnix = EPOCH_208_START + (epochsSince * EPOCH_LENGTH);
+        const endUnix = startUnix + EPOCH_LENGTH;
+        const progress = ((unixTime - startUnix) / EPOCH_LENGTH) * 100;
+        return { epochNo, startUnix, endUnix, progress };
+    }
+
+    function formatEpochDate(unix) {
+        const d = new Date(unix * 1000);
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function updateProgressBar() {
+        const currentUnix = Math.floor(Date.now() / 1000);
+        const { epochNo, startUnix, endUnix, progress } = getEpochData(currentUnix);
+        
+        document.getElementById("epochProgressBar").style.width = `${Math.min(100, Math.max(0, progress))}%`;
+        document.getElementById("epochStartText").innerText = `Epoch ${epochNo} | Started: ${formatEpochDate(startUnix)}`;
+        document.getElementById("epochEndText").innerText = `Ends: ${formatEpochDate(endUnix)}`;
+    }
+
+    let currentCalDate = new Date();
+
+    function openCalendar() {
+        document.getElementById("calendarModal").classList.add("active");
+        renderCalendar();
+    }
+
+    function closeCalendar() {
+        document.getElementById("calendarModal").classList.remove("active");
+    }
+
+    function changeMonth(delta) {
+        currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    function renderCalendar() {
+        const year = currentCalDate.getFullYear();
+        const month = currentCalDate.getMonth();
+        
+        document.getElementById("calendarMonthLabel").innerText = currentCalDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        
+        const startOffset = firstDay.getDay(); 
+        const daysInMonth = lastDay.getDate();
+        
+        const grid = document.getElementById("calendarDays");
+        grid.innerHTML = "";
+        
+        const monthStartUnix = Math.floor(firstDay.getTime() / 1000);
+        const monthEndUnix = Math.floor(new Date(year, month + 1, 1).getTime() / 1000);
+        
+        const monthEpochs = {};
+        
+        let { epochNo, startUnix, endUnix } = getEpochData(monthStartUnix);
+        
+        if (startUnix >= monthStartUnix && startUnix < monthEndUnix) {
+             const startDay = new Date(startUnix * 1000).getDate();
+             monthEpochs[startDay] = epochNo;
+        }
+
+        let nextStart = endUnix;
+        let nextEpochNo = epochNo + 1;
+
+        while (nextStart < monthEndUnix) {
+            const startDay = new Date(nextStart * 1000).getDate();
+            monthEpochs[startDay] = nextEpochNo;
+            nextStart += EPOCH_LENGTH;
+            nextEpochNo++;
+        }
+
+        const today = new Date();
+        const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+        for (let i = 0; i < startOffset; i++) {
+            const empty = document.createElement("div");
+            empty.className = "cal-day empty";
+            grid.appendChild(empty);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayEl = document.createElement("div");
+            dayEl.className = "cal-day";
+            if (isCurrentMonth && today.getDate() === day) {
+                dayEl.classList.add("today");
+            }
+            
+            let epochHtml = "";
+            if (monthEpochs[day]) {
+                epochHtml = `<div class="epoch-marker">Epoch ${monthEpochs[day]}</div>`;
+            }
+            
+            dayEl.innerHTML = `<span class="day-number">${day}</span>${epochHtml}`;
+            grid.appendChild(dayEl);
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         const savedDRep = localStorage.getItem("savedDrepId");
         const savedToken = localStorage.getItem("savedKoiosToken");
@@ -367,6 +580,9 @@
         if (!savedDRep || !savedToken) {
             openSettings();
         }
+
+        updateProgressBar();
+        setInterval(updateProgressBar, 60000);
     });
 
     async function runDashboard() {
