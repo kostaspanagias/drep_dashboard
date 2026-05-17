@@ -758,8 +758,18 @@
                     if (item.dropped) statusLabel = "Dropped";
                     expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} (Epoch ${item.expireEpoch})</span>`;
                 } else {
-                    const estDaysLeft = item.epochsLeft * 5; 
-                    expireText = `<span style="color: var(--primary); font-weight: bold;">Epoch ${item.expireEpoch}</span> (~${estDaysLeft} days left)`;
+                    const currentUnixTime = Math.floor(Date.now() / 1000);
+                    const expireEpochStartUnix = EPOCH_208_START + ((item.expireEpoch - 208) * EPOCH_LENGTH);
+                    const secondsLeft = expireEpochStartUnix - currentUnixTime;
+                    let timeLeftText = "";
+                    if (secondsLeft >= 86400) {
+                        timeLeftText = `${parseFloat((secondsLeft / 86400).toFixed(1))} days`;
+                    } else if (secondsLeft > 0) {
+                        timeLeftText = `${Math.floor(secondsLeft / 3600)} hours`;
+                    } else {
+                        timeLeftText = "less than an hour";
+                    }
+                    expireText = `<span style="color: var(--primary); font-weight: bold;">Epoch ${item.expireEpoch}</span> (~${timeLeftText} left)`;
                 }
             }
 
