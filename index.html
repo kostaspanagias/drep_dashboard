@@ -759,8 +759,9 @@
                     expireText = `<span style="color: var(--text-muted); font-weight: bold;">${statusLabel} (Epoch ${item.expireEpoch})</span>`;
                 } else {
                     const currentUnixTime = Math.floor(Date.now() / 1000);
-                    const expireEpochStartUnix = EPOCH_208_START + ((item.expireEpoch - 208) * EPOCH_LENGTH);
-                    const secondsLeft = expireEpochStartUnix - currentUnixTime;
+                    // The deadline is at the *end* of the expireEpoch, which is the start of expireEpoch + 1
+                    const expireEpochEndUnix = EPOCH_208_START + ((item.expireEpoch - 208 + 1) * EPOCH_LENGTH);
+                    const secondsLeft = expireEpochEndUnix - currentUnixTime;
                     let timeLeftText = "";
                     if (secondsLeft >= 86400) {
                         timeLeftText = `${parseFloat((secondsLeft / 86400).toFixed(1))} days`;
