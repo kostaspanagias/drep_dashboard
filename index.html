@@ -78,7 +78,7 @@
         .input-group { display: flex; gap: 1rem; margin-top: 1rem; }
         @media (max-width: 768px) { .input-group { flex-direction: column; } }
 
-        input {
+        input:not([type="checkbox"]) {
             flex: 1; padding: 0.75rem; border: 1px solid var(--border);
             border-radius: 4px; font-size: 1rem; font-family: monospace;
         }
@@ -364,6 +364,19 @@
         <div class="input-group">
             <input type="password" id="apiTokenInput" placeholder="Koios API Token">
             <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
+            
+            <div style="text-align: left; background: #fafafa; border: 1px solid var(--border); padding: 1rem; border-radius: 6px; margin-top: 0.5rem;">
+                <span style="font-weight: bold; font-size: 0.9rem; color: var(--primary); display: block; margin-bottom: 0.5rem;">Cardano Explorers</span>
+                <div style="display: flex; gap: 1.5rem; font-size: 0.9rem;">
+                    <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                        <input type="checkbox" id="showAdaStat" style="cursor: pointer;"> AdaStat
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                        <input type="checkbox" id="showCExplorer" style="cursor: pointer;"> CExplorer
+                    </label>
+                </div>
+            </div>
+
             <button id="fetchBtn" class="primary-btn" onclick="fetchAndClose()">Save & Fetch Data</button>
         </div>
         <p class="disclaimer">*Requires a Free Tier API Token from Koios. Stored locally in your browser.</p>
@@ -407,7 +420,14 @@
             <option value="infoaction">Info Action</option>
         </select>
 
-        <button id="sortBtn" class="control-item" onclick="toggleSort()" style="display: none;">
+        <div id="expiryFilterContainer" style="display: none; margin-top: 0.5rem; width: 100%;">
+            <label class="control-item" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; width: 100%; box-sizing: border-box; font-weight: bold;">
+                <input type="checkbox" id="expiryCheckbox" onchange="applySortAndRender()" style="width: auto; margin: 0; cursor: pointer;">
+                Expiring this Epoch
+            </label>
+        </div>
+
+        <button id="sortBtn" class="control-item" onclick="toggleSort()" style="display: none; margin-top: 0.5rem;">
             Deadline: Closest First ⬇️
         </button>
     </aside>
@@ -617,6 +637,11 @@
         const savedToken = localStorage.getItem("savedKoiosToken");
         if (savedDRep) document.getElementById("drepIdInput").value = savedDRep;
         if (savedToken) document.getElementById("apiTokenInput").value = savedToken;
+
+        const savedShowAdaStat = localStorage.getItem("savedShowAdaStat") === "true";
+        const savedShowCExplorer = localStorage.getItem("savedShowCExplorer") === "true";
+        document.getElementById("showAdaStat").checked = savedShowAdaStat;
+        document.getElementById("showCExplorer").checked = savedShowCExplorer;
         
         if (!savedDRep || !savedToken) {
             openSettings();
@@ -636,6 +661,8 @@
 
         localStorage.setItem("savedDrepId", drepId);
         localStorage.setItem("savedKoiosToken", apiToken);
+        localStorage.setItem("savedShowAdaStat", document.getElementById("showAdaStat").checked);
+        localStorage.setItem("savedShowCExplorer", document.getElementById("showCExplorer").checked);
 
         btn.disabled = true;
         statusEl.innerText = "Fetching chain data and resolving dates...";
@@ -707,6 +734,7 @@
 
             document.getElementById("sortBtn").style.display = "inline-block";
             document.getElementById("typeFilter").style.display = "inline-block";
+            document.getElementById("expiryFilterContainer").style.display = "block";
             applySortAndRender();
 
             statusEl.innerText = `Data Synced Successfully!`;
@@ -720,13 +748,23 @@
     }
 
     function applySortAndRender() {
-        const filterValue = document.getElementById("typeFilter").value;
+        const typeFilterValue = document.getElementById("typeFilter").value;
+        const onlyExpiringThisEpoch = document.getElementById("expiryCheckbox").checked;
 
         const filterFn = (item) => {
-            if (filterValue === "all") return true;
-            const rawType = item.proposal_type || item.action_type;
-            const normalizedType = normalizeString(rawType);
-            return normalizedType === filterValue;
+            // Filter by proposal type
+            if (typeFilterValue !== "all") {
+                const rawType = item.proposal_type || item.action_type;
+                const normalizedType = normalizeString(rawType);
+                if (normalizedType !== typeFilterValue) return false;
+            }
+
+            // Filter by expiring this epoch
+            if (onlyExpiringThisEpoch) {
+                if (item.epochsLeft !== 0) return false;
+            }
+
+            return true;
         };
 
         const filteredPending = globalPending.filter(filterFn);
@@ -774,6 +812,21 @@
             const fallbackTitle = `${mapped.label} #${index}`;
             const titleId = `title-${txHash}-${index}`;
             const govToolLink = `https://gov.tools/governance_actions/${txHash}#${index}`;
+
+            const showAdaStat = document.getElementById("showAdaStat").checked;
+            const showCExplorer = document.getElementById("showCExplorer").checked;
+
+            let explorerLinksHtml = "";
+            if (showAdaStat) {
+                const padIndex = index !== undefined && index !== null ? String(index).padStart(2, '0') : '';
+                const adaStatLink = `https://adastat.net/governances/${txHash}${padIndex}`;
+                explorerLinksHtml += `<a href="${adaStatLink}" target="_blank" class="action-link">↗ View on AdaStat</a>`;
+            }
+            if (showCExplorer) {
+                const idxVal = index !== undefined && index !== null ? index : 0;
+                const cexplorerLink = `https://cexplorer.io/gov/action/${txHash}%2523${idxVal}`;
+                explorerLinksHtml += `<a href="${cexplorerLink}" target="_blank" class="action-link">↗ View on CExplorer</a>`;
+            }
 
             // Strict IPFS URL construction to exactly match user request: "https://ipfs.io/" + ipfs id
             const metaUrl = item.meta_url || item.proposal_meta_url || null;
@@ -844,6 +897,7 @@
                 
                 <div class="action-links-container">
                     <a href="${govToolLink}" target="_blank" class="action-link">↗ View on GovTool</a>
+                    ${explorerLinksHtml}
                     ${rawLinkHtml}
                 </div>
             `;
