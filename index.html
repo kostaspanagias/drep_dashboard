@@ -545,6 +545,8 @@
                 <p>Overview of DRep governance activities and statistics.</p>
             </header>
 
+            <div id="urgent-checklist-panel" class="dashboard-card" style="margin-bottom: 1.5rem; display: none;"></div>
+
             <div class="dashboard-grid">
                 <div class="dashboard-card pending-card">
                     <h3>Needs Vote</h3>
@@ -615,6 +617,7 @@
     let globalVoted = [];
     let globalMissed = [];
     let sortClosestFirst = true;
+    let currentEpochNo = null;
 
     function normalizeString(str) {
         if (!str) return "";
@@ -840,6 +843,7 @@
             const paramsData = await paramsRes.json();
 
             const currentEpoch = tipData[0].epoch_no;
+            currentEpochNo = currentEpoch;
             const currentUnix = tipData[0].block_time;
             const govLifetime = paramsData[0].gov_action_lifetime;
 
@@ -958,6 +962,74 @@
         renderDashboardTable("dashboard-pending-table", counts.pending, "var(--pending)");
         renderDashboardTable("dashboard-voted-table", counts.voted, "var(--voted)");
         renderDashboardTable("dashboard-missed-table", counts.missed, "var(--text-muted)");
+
+        // Update urgent checklist
+        let urgentNeedsVote = 0;
+        let urgentVoted = 0;
+
+        globalPending.forEach(item => {
+            if (item.epochsLeft === 0) urgentNeedsVote++;
+        });
+
+        globalVoted.forEach(item => {
+            if (item.epochsLeft === 0) urgentVoted++;
+        });
+
+        const urgentPanel = document.getElementById("urgent-checklist-panel");
+        if (urgentNeedsVote > 0) {
+            urgentPanel.style.borderLeft = "4px solid var(--pending)";
+            urgentPanel.style.display = "block";
+            urgentPanel.innerHTML = `
+                <h3 style="color: var(--pending); border-bottom: none; padding-bottom: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    ⚠️ Attention Required: Expiring this Epoch (Epoch ${currentEpochNo})
+                </h3>
+                <p style="margin: 0 0 1rem 0; font-size: 0.95rem; color: var(--text-muted);">
+                    You have pending governance proposals that will expire at the end of this epoch.
+                </p>
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                    <div style="background: #fff5f5; border: 1px solid #ffe3e3; padding: 1rem; border-radius: 6px; flex: 1; min-width: 150px;">
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--pending); display: block; text-transform: uppercase;">Needs Vote</span>
+                        <strong style="font-size: 2rem; color: var(--pending); line-height: 1.2;">${urgentNeedsVote}</strong>
+                    </div>
+                    <div style="background: #f5fff5; border: 1px solid #e3ffe3; padding: 1rem; border-radius: 6px; flex: 1; min-width: 150px;">
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--voted); display: block; text-transform: uppercase;">Voted</span>
+                        <strong style="font-size: 2rem; color: var(--voted); line-height: 1.2;">${urgentVoted}</strong>
+                    </div>
+                </div>
+            `;
+        } else if (urgentVoted > 0) {
+            urgentPanel.style.borderLeft = "4px solid var(--voted)";
+            urgentPanel.style.display = "block";
+            urgentPanel.innerHTML = `
+                <h3 style="color: var(--voted); border-bottom: none; padding-bottom: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    ✅ All Clear for Epoch ${currentEpochNo}
+                </h3>
+                <p style="margin: 0 0 1rem 0; font-size: 0.95rem; color: var(--text-muted);">
+                    All proposals expiring this epoch have been voted on.
+                </p>
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                    <div style="background: #f5fafd; border: 1px solid #e3f2fd; padding: 1rem; border-radius: 6px; flex: 1; min-width: 150px;">
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--primary); display: block; text-transform: uppercase;">Needs Vote</span>
+                        <strong style="font-size: 2rem; color: var(--primary); line-height: 1.2;">0</strong>
+                    </div>
+                    <div style="background: #f5fff5; border: 1px solid #e3ffe3; padding: 1rem; border-radius: 6px; flex: 1; min-width: 150px;">
+                        <span style="font-size: 0.85rem; font-weight: bold; color: var(--voted); display: block; text-transform: uppercase;">Voted</span>
+                        <strong style="font-size: 2rem; color: var(--voted); line-height: 1.2;">${urgentVoted}</strong>
+                    </div>
+                </div>
+            `;
+        } else {
+            urgentPanel.style.borderLeft = "4px solid #0055ff";
+            urgentPanel.style.display = "block";
+            urgentPanel.innerHTML = `
+                <h3 style="color: #0055ff; border-bottom: none; padding-bottom: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    ℹ️ No Expirations in Epoch ${currentEpochNo}
+                </h3>
+                <p style="margin: 0; font-size: 0.95rem; color: var(--text-muted);">
+                    There are no governance proposals scheduled to expire at the end of the current epoch.
+                </p>
+            `;
+        }
     }
 
     function renderDashboardTable(tableId, countObj, badgeBgColor) {
