@@ -298,6 +298,7 @@
 
         /* Calendar Modal Styles */
         .calendar-modal { max-width: 600px; padding: 2rem; }
+        .settings-modal { max-width: 600px; }
         .calendar-controls {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;
         }
@@ -455,14 +456,21 @@
 <div id="status"></div>
 
 <div id="settingsModal" class="modal-overlay">
-    <div class="modal-content">
+    <div class="modal-content settings-modal">
         <button class="close-btn" onclick="closeSettings()">&times;</button>
         <h2>Configuration</h2>
         <div class="input-group">
-            <input type="password" id="apiTokenInput" placeholder="Koios API Token">
-            <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; text-align: left; width: 100%;">
+                <label for="apiTokenInput" style="font-weight: bold; font-size: 0.9rem; color: var(--text-main);">Koios API Token</label>
+                <input type="password" id="apiTokenInput" placeholder="Enter your Koios API Token">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; text-align: left; width: 100%;">
+                <label for="drepIdInput" style="font-weight: bold; font-size: 0.9rem; color: var(--text-main);">DRep ID</label>
+                <input type="text" id="drepIdInput" placeholder="Enter your DRep ID (drep1...)">
+            </div>
             
-            <div style="text-align: left; background: #fafafa; border: 1px solid var(--border); padding: 1rem; border-radius: 6px; margin-top: 0.5rem;">
+            <div style="text-align: left; background: #fafafa; border: 1px solid var(--border); padding: 1rem; border-radius: 6px; margin-top: 0.5rem; width: 100%; box-sizing: border-box;">
                 <span style="font-weight: bold; font-size: 0.9rem; color: var(--primary); display: block; margin-bottom: 0.5rem;">Cardano Explorers</span>
                 <div style="display: flex; gap: 1.5rem; font-size: 0.9rem;">
                     <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
@@ -474,7 +482,7 @@
                 </div>
             </div>
 
-            <button id="fetchBtn" class="primary-btn" onclick="fetchAndClose()">Save & Fetch Data</button>
+            <button id="fetchBtn" class="primary-btn" onclick="fetchAndClose()" style="width: 100%; margin-top: 0.5rem;">Save & Fetch Data</button>
         </div>
         <p class="disclaimer">*Requires a Free Tier API Token from Koios. Stored locally in your browser.</p>
     </div>
