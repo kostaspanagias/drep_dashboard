@@ -679,9 +679,15 @@
                 let isExpiredByMath = false;
                 proposal.epochsLeft = 999; 
 
-                proposal.expireEpoch = proposal.expiration || (proposalEpoch && govLifetime ? proposalEpoch + govLifetime : null);
+                // Koios `expiration` = the epoch at which the proposal is removed.
+                // `proposed_epoch + gov_action_lifetime` yields the same value.
+                // The LAST epoch a DRep can vote is (expiration - 1).
+                // We store that as expireEpoch so the display shows the correct deadline epoch
+                // and the countdown targets the END of that epoch (= start of the expiration epoch).
+                const rawExpiration = proposal.expiration || (proposalEpoch && govLifetime ? proposalEpoch + govLifetime : null);
+                proposal.expireEpoch = rawExpiration ? rawExpiration - 1 : null;
 
-                if (proposal.expireEpoch) {
+                if (proposal.expireEpoch !== null) {
                     proposal.epochsLeft = proposal.expireEpoch - currentEpoch; 
                     if (proposal.epochsLeft < 0) {
                         isExpiredByMath = true;
