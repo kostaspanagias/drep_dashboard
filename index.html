@@ -512,7 +512,7 @@
             <option value="hardforkinitiation">Hard-Fork Initiation</option>
             <option value="treasurywithdrawals">Treasury Withdrawal</option>
             <option value="noconfidence">Motion of No-Confidence</option>
-            <option value="updatecommittee">Update Committee</option>
+            <option value="newcommittee">New Committee</option>
             <option value="newconstitution">New Constitution</option>
             <option value="infoaction">Info Action</option>
         </select>
@@ -598,6 +598,7 @@
         'treasurywithdrawals': { label: 'Treasury', class: 'bg-treasury' },
         'noconfidence': { label: 'No Confidence', class: 'bg-noconfidence' },
         'updatecommittee': { label: 'Update Committee', class: 'bg-committee' },
+        'newcommittee': { label: 'New Committee', class: 'bg-committee' },
         'newconstitution': { label: 'New Constitution', class: 'bg-constitution' },
         'infoaction': { label: 'Info Action', class: 'bg-info' }
     };
@@ -901,7 +902,7 @@
                 hardforkinitiation: 0,
                 treasurywithdrawals: 0,
                 noconfidence: 0,
-                updatecommittee: 0,
+                newcommittee: 0,
                 newconstitution: 0,
                 infoaction: 0,
                 other: 0
@@ -911,7 +912,7 @@
                 hardforkinitiation: 0,
                 treasurywithdrawals: 0,
                 noconfidence: 0,
-                updatecommittee: 0,
+                newcommittee: 0,
                 newconstitution: 0,
                 infoaction: 0,
                 other: 0
@@ -921,7 +922,7 @@
                 hardforkinitiation: 0,
                 treasurywithdrawals: 0,
                 noconfidence: 0,
-                updatecommittee: 0,
+                newcommittee: 0,
                 newconstitution: 0,
                 infoaction: 0,
                 other: 0
@@ -931,7 +932,9 @@
         const categorize = (list, countObj) => {
             list.forEach(item => {
                 const rawType = item.proposal_type || item.action_type;
-                const normalizedType = normalizeString(rawType);
+                let normalizedType = normalizeString(rawType);
+                if (normalizedType === 'updatecommittee') normalizedType = 'newcommittee';
+                
                 if (countObj[normalizedType] !== undefined) {
                     countObj[normalizedType]++;
                 } else {
@@ -958,7 +961,7 @@
             { key: 'parameterchange', label: 'Parameter Change' },
             { key: 'hardforkinitiation', label: 'Hard-Fork Initiation' },
             { key: 'noconfidence', label: 'Motion of No Confidence' },
-            { key: 'updatecommittee', label: 'Update Committee' },
+            { key: 'newcommittee', label: 'New Committee' },
             { key: 'newconstitution', label: 'New Constitution' },
             { key: 'infoaction', label: 'Info Action' }
         ];
@@ -990,7 +993,8 @@
             // Filter by proposal type
             if (typeFilterValue !== "all") {
                 const rawType = item.proposal_type || item.action_type;
-                const normalizedType = normalizeString(rawType);
+                let normalizedType = normalizeString(rawType);
+                if (normalizedType === 'updatecommittee') normalizedType = 'newcommittee';
                 if (normalizedType !== typeFilterValue) return false;
             }
 
