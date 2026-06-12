@@ -671,17 +671,17 @@
                 const uniqueId = `${proposal.proposal_tx_hash}#${proposal.proposal_index}`;
                 const isVoted = votedSet.has(uniqueId);
                 
-                let proposalEpoch = proposal.epoch_no || proposal.active_epoch; 
+                let proposalEpoch = proposal.proposed_epoch || proposal.epoch_no || proposal.active_epoch; 
                 if (!proposalEpoch && proposal.block_time) {
-                    const epochsDiff = Math.floor((currentUnix - proposal.block_time) / 432000); 
-                    proposalEpoch = currentEpoch - epochsDiff;
+                    proposalEpoch = getEpochData(proposal.block_time).epochNo;
                 }
 
                 let isExpiredByMath = false;
                 proposal.epochsLeft = 999; 
 
-                if (proposalEpoch && govLifetime) {
-                    proposal.expireEpoch = proposalEpoch + govLifetime; 
+                proposal.expireEpoch = proposal.expiration || (proposalEpoch && govLifetime ? proposalEpoch + govLifetime : null);
+
+                if (proposal.expireEpoch) {
                     proposal.epochsLeft = proposal.expireEpoch - currentEpoch; 
                     if (proposal.epochsLeft < 0) {
                         isExpiredByMath = true;
