@@ -1,6 +1,6 @@
 # Cardano DRep Governance Dashboard
 
-An elegant, client-side web interface designed for Cardano **Delegate Representatives (DReps)** to easily track, filter, and manage active governance proposals, voting deadlines, and historical participation.
+A simple, client-side web interface designed for Cardano **Delegate Representatives (DReps)** to easily track, filter, and manage active governance proposals, voting deadlines, and historical participation.
 
 👉 **Try it Live:** [kostaspanagias.github.io/drep_dashboard](https://kostaspanagias.github.io/drep_dashboard/)
 
